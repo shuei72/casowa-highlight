@@ -3,10 +3,15 @@
   "displayName": "Casowa Highlight",
   "description": "VS Code extension to highlight words with 16 configurable color patterns.",
   "version": "0.0.1",
-  "publisher": "casowa",
+  "publisher": "shuei",
+  "author": "shuei",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shuei72/casowa-highlight.git"
+  },
   "engines": {
-    "vscode": "^1.85.0"
+    "vscode": "^1.74.0"
   },
   "categories": [
     "Other"
