@@ -1,8 +1,8 @@
 {
   "name": "casowa-highlight",
   "displayName": "Casowa Highlight",
-  "description": "VS Code extension to highlight words with 16 configurable color patterns.",
-  "version": "0.0.1",
+  "description": "VS Code extension to highlight text with configurable colors.",
+  "version": "0.1.0",
   "publisher": "shuei",
   "author": "shuei",
   "license": "MIT",
@@ -26,184 +26,267 @@
   "contributes": {
     "commands": [
       {
-        "command": "casowaHighlight.highlightCurrentWord",
-        "title": "Casowa Highlight: Highlight Current Word"
+        "command": "casowaHighlight.highlightWordFromContext",
+        "title": "Add Highlight",
+        "category": "Casowa Highlight"
       },
       {
         "command": "casowaHighlight.highlightInputWord",
-        "title": "Casowa Highlight: Highlight Word from Input"
+        "title": "Add Highlight...",
+        "category": "Casowa Highlight"
       },
       {
         "command": "casowaHighlight.clearCurrentWordHighlight",
-        "title": "Casowa Highlight: Clear Current Word Highlight"
+        "title": "Remove Highlight",
+        "category": "Casowa Highlight"
       },
       {
         "command": "casowaHighlight.clearAllHighlights",
-        "title": "Casowa Highlight: Clear All Highlights"
+        "title": "Clear All Highlights",
+        "category": "Casowa Highlight"
+      },
+      {
+        "command": "casowaHighlight.showHighlightedWords",
+        "title": "Select Highlighted Word",
+        "category": "Casowa Highlight"
+      },
+      {
+        "command": "casowaHighlight.showHighlightedPanel",
+        "title": "Open Highlighted Panel",
+        "category": "Casowa Highlight"
+      },
+      {
+        "command": "casowaHighlight.jumpToNextSelectedHighlightedWord",
+        "title": "Next Highlighted Match",
+        "category": "Casowa Highlight"
       }
     ],
+    "views": {
+      "panel": [
+        {
+          "type": "webview",
+          "id": "casowaHighlight.highlightedWordsPanel",
+          "name": "Highlighted",
+          "icon": "media/highlighted-view.svg"
+        }
+      ]
+    },
+    "submenus": [
+      {
+        "id": "casowaHighlight.editorMenu",
+        "label": "Casowa Highlight"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "submenu": "casowaHighlight.editorMenu",
+          "group": "navigation@100"
+        }
+      ],
+      "casowaHighlight.editorMenu": [
+        {
+          "command": "casowaHighlight.highlightWordFromContext",
+          "group": "1_add@1"
+        },
+        {
+          "command": "casowaHighlight.highlightInputWord",
+          "group": "1_add@2"
+        },
+        {
+          "command": "casowaHighlight.clearCurrentWordHighlight",
+          "group": "2_clear@1"
+        },
+        {
+          "command": "casowaHighlight.clearAllHighlights",
+          "group": "2_clear@2"
+        },
+        {
+          "command": "casowaHighlight.showHighlightedWords",
+          "group": "3_navigate@1"
+        },
+        {
+          "command": "casowaHighlight.jumpToNextSelectedHighlightedWord",
+          "group": "3_navigate@2"
+        },
+        {
+          "command": "casowaHighlight.showHighlightedPanel",
+          "group": "4_panel@1"
+        }
+      ]
+    },
     "configuration": {
       "title": "Casowa Highlight",
       "properties": {
-        "casowaHighlight.pattern1.backgroundColor": {
+        "casowaHighlight.colorMode": {
           "type": "string",
-          "default": "#FFF59D",
-          "description": "Background color for highlight pattern 1."
+          "enum": [
+            "auto",
+            "light",
+            "dark"
+          ],
+          "default": "auto",
+          "description": "Select whether highlight colors follow the current theme or always use the light or dark color set."
         },
-        "casowaHighlight.pattern1.foregroundColor": {
+        "casowaHighlight.light.pattern1.backgroundColor": {
           "type": "string",
-          "default": "#1F1F1F",
-          "description": "Foreground color for highlight pattern 1."
+          "default": "#FFE066",
+          "description": "Background color for light theme highlight pattern 1."
         },
-        "casowaHighlight.pattern2.backgroundColor": {
+        "casowaHighlight.light.pattern1.foregroundColor": {
           "type": "string",
-          "default": "#FFCC80",
-          "description": "Background color for highlight pattern 2."
+          "default": "#2B2200",
+          "description": "Foreground color for light theme highlight pattern 1."
         },
-        "casowaHighlight.pattern2.foregroundColor": {
+        "casowaHighlight.light.pattern2.backgroundColor": {
           "type": "string",
-          "default": "#1F1F1F",
-          "description": "Foreground color for highlight pattern 2."
+          "default": "#FFB86B",
+          "description": "Background color for light theme highlight pattern 2."
         },
-        "casowaHighlight.pattern3.backgroundColor": {
+        "casowaHighlight.light.pattern2.foregroundColor": {
           "type": "string",
-          "default": "#A5D6A7",
-          "description": "Background color for highlight pattern 3."
+          "default": "#3A1F00",
+          "description": "Foreground color for light theme highlight pattern 2."
         },
-        "casowaHighlight.pattern3.foregroundColor": {
+        "casowaHighlight.light.pattern3.backgroundColor": {
           "type": "string",
-          "default": "#102A12",
-          "description": "Foreground color for highlight pattern 3."
+          "default": "#7EE787",
+          "description": "Background color for light theme highlight pattern 3."
         },
-        "casowaHighlight.pattern4.backgroundColor": {
+        "casowaHighlight.light.pattern3.foregroundColor": {
           "type": "string",
-          "default": "#80CBC4",
-          "description": "Background color for highlight pattern 4."
+          "default": "#12311A",
+          "description": "Foreground color for light theme highlight pattern 3."
         },
-        "casowaHighlight.pattern4.foregroundColor": {
+        "casowaHighlight.light.pattern4.backgroundColor": {
           "type": "string",
-          "default": "#10211F",
-          "description": "Foreground color for highlight pattern 4."
+          "default": "#56D4DD",
+          "description": "Background color for light theme highlight pattern 4."
         },
-        "casowaHighlight.pattern5.backgroundColor": {
+        "casowaHighlight.light.pattern4.foregroundColor": {
           "type": "string",
-          "default": "#81D4FA",
-          "description": "Background color for highlight pattern 5."
+          "default": "#0F2E33",
+          "description": "Foreground color for light theme highlight pattern 4."
         },
-        "casowaHighlight.pattern5.foregroundColor": {
+        "casowaHighlight.light.pattern5.backgroundColor": {
           "type": "string",
-          "default": "#102033",
-          "description": "Foreground color for highlight pattern 5."
+          "default": "#7CC7FF",
+          "description": "Background color for light theme highlight pattern 5."
         },
-        "casowaHighlight.pattern6.backgroundColor": {
+        "casowaHighlight.light.pattern5.foregroundColor": {
           "type": "string",
-          "default": "#90CAF9",
-          "description": "Background color for highlight pattern 6."
+          "default": "#0E2A40",
+          "description": "Foreground color for light theme highlight pattern 5."
         },
-        "casowaHighlight.pattern6.foregroundColor": {
+        "casowaHighlight.light.pattern6.backgroundColor": {
           "type": "string",
-          "default": "#101F33",
-          "description": "Foreground color for highlight pattern 6."
+          "default": "#8FA8FF",
+          "description": "Background color for light theme highlight pattern 6."
         },
-        "casowaHighlight.pattern7.backgroundColor": {
+        "casowaHighlight.light.pattern6.foregroundColor": {
           "type": "string",
-          "default": "#B39DDB",
-          "description": "Background color for highlight pattern 7."
+          "default": "#14264A",
+          "description": "Foreground color for light theme highlight pattern 6."
         },
-        "casowaHighlight.pattern7.foregroundColor": {
+        "casowaHighlight.light.pattern7.backgroundColor": {
           "type": "string",
-          "default": "#1C1433",
-          "description": "Foreground color for highlight pattern 7."
+          "default": "#C7A6FF",
+          "description": "Background color for light theme highlight pattern 7."
         },
-        "casowaHighlight.pattern8.backgroundColor": {
+        "casowaHighlight.light.pattern7.foregroundColor": {
           "type": "string",
-          "default": "#CE93D8",
-          "description": "Background color for highlight pattern 8."
+          "default": "#261A52",
+          "description": "Foreground color for light theme highlight pattern 7."
         },
-        "casowaHighlight.pattern8.foregroundColor": {
+        "casowaHighlight.light.pattern8.backgroundColor": {
           "type": "string",
-          "default": "#301331",
-          "description": "Foreground color for highlight pattern 8."
+          "default": "#FF8CC6",
+          "description": "Background color for light theme highlight pattern 8."
         },
-        "casowaHighlight.pattern9.backgroundColor": {
+        "casowaHighlight.light.pattern8.foregroundColor": {
           "type": "string",
-          "default": "#F48FB1",
-          "description": "Background color for highlight pattern 9."
+          "default": "#4A1830",
+          "description": "Foreground color for light theme highlight pattern 8."
         },
-        "casowaHighlight.pattern9.foregroundColor": {
+        "casowaHighlight.dark.pattern1.backgroundColor": {
           "type": "string",
-          "default": "#381321",
-          "description": "Foreground color for highlight pattern 9."
+          "default": "#8A6A00",
+          "description": "Background color for dark theme highlight pattern 1."
         },
-        "casowaHighlight.pattern10.backgroundColor": {
+        "casowaHighlight.dark.pattern1.foregroundColor": {
           "type": "string",
-          "default": "#EF9A9A",
-          "description": "Background color for highlight pattern 10."
+          "default": "#FFF8D6",
+          "description": "Foreground color for dark theme highlight pattern 1."
         },
-        "casowaHighlight.pattern10.foregroundColor": {
+        "casowaHighlight.dark.pattern2.backgroundColor": {
           "type": "string",
-          "default": "#3A1515",
-          "description": "Foreground color for highlight pattern 10."
+          "default": "#A04F00",
+          "description": "Background color for dark theme highlight pattern 2."
         },
-        "casowaHighlight.pattern11.backgroundColor": {
+        "casowaHighlight.dark.pattern2.foregroundColor": {
           "type": "string",
-          "default": "#FFAB91",
-          "description": "Background color for highlight pattern 11."
+          "default": "#FFF1DF",
+          "description": "Foreground color for dark theme highlight pattern 2."
         },
-        "casowaHighlight.pattern11.foregroundColor": {
+        "casowaHighlight.dark.pattern3.backgroundColor": {
           "type": "string",
-          "default": "#3A1B13",
-          "description": "Foreground color for highlight pattern 11."
+          "default": "#1F7A32",
+          "description": "Background color for dark theme highlight pattern 3."
         },
-        "casowaHighlight.pattern12.backgroundColor": {
+        "casowaHighlight.dark.pattern3.foregroundColor": {
           "type": "string",
-          "default": "#FFE082",
-          "description": "Background color for highlight pattern 12."
+          "default": "#E6FFEC",
+          "description": "Foreground color for dark theme highlight pattern 3."
         },
-        "casowaHighlight.pattern12.foregroundColor": {
+        "casowaHighlight.dark.pattern4.backgroundColor": {
           "type": "string",
-          "default": "#33260F",
-          "description": "Foreground color for highlight pattern 12."
+          "default": "#007A7A",
+          "description": "Background color for dark theme highlight pattern 4."
         },
-        "casowaHighlight.pattern13.backgroundColor": {
+        "casowaHighlight.dark.pattern4.foregroundColor": {
           "type": "string",
-          "default": "#E6EE9C",
-          "description": "Background color for highlight pattern 13."
+          "default": "#E2FFFB",
+          "description": "Foreground color for dark theme highlight pattern 4."
         },
-        "casowaHighlight.pattern13.foregroundColor": {
+        "casowaHighlight.dark.pattern5.backgroundColor": {
           "type": "string",
-          "default": "#232D11",
-          "description": "Foreground color for highlight pattern 13."
+          "default": "#005FA3",
+          "description": "Background color for dark theme highlight pattern 5."
         },
-        "casowaHighlight.pattern14.backgroundColor": {
+        "casowaHighlight.dark.pattern5.foregroundColor": {
           "type": "string",
-          "default": "#C5E1A5",
-          "description": "Background color for highlight pattern 14."
+          "default": "#E7F6FF",
+          "description": "Foreground color for dark theme highlight pattern 5."
         },
-        "casowaHighlight.pattern14.foregroundColor": {
+        "casowaHighlight.dark.pattern6.backgroundColor": {
           "type": "string",
-          "default": "#1B2D14",
-          "description": "Foreground color for highlight pattern 14."
+          "default": "#2E4FB8",
+          "description": "Background color for dark theme highlight pattern 6."
         },
-        "casowaHighlight.pattern15.backgroundColor": {
+        "casowaHighlight.dark.pattern6.foregroundColor": {
           "type": "string",
-          "default": "#B2DFDB",
-          "description": "Background color for highlight pattern 15."
+          "default": "#ECF2FF",
+          "description": "Foreground color for dark theme highlight pattern 6."
         },
-        "casowaHighlight.pattern15.foregroundColor": {
+        "casowaHighlight.dark.pattern7.backgroundColor": {
           "type": "string",
-          "default": "#13302C",
-          "description": "Foreground color for highlight pattern 15."
+          "default": "#6B3FC9",
+          "description": "Background color for dark theme highlight pattern 7."
         },
-        "casowaHighlight.pattern16.backgroundColor": {
+        "casowaHighlight.dark.pattern7.foregroundColor": {
           "type": "string",
-          "default": "#B0BEC5",
-          "description": "Background color for highlight pattern 16."
+          "default": "#F0EBFF",
+          "description": "Foreground color for dark theme highlight pattern 7."
         },
-        "casowaHighlight.pattern16.foregroundColor": {
+        "casowaHighlight.dark.pattern8.backgroundColor": {
           "type": "string",
-          "default": "#182229",
-          "description": "Foreground color for highlight pattern 16."
+          "default": "#B03072",
+          "description": "Background color for dark theme highlight pattern 8."
+        },
+        "casowaHighlight.dark.pattern8.foregroundColor": {
+          "type": "string",
+          "default": "#FBEFFF",
+          "description": "Foreground color for dark theme highlight pattern 8."
         }
       }
     }

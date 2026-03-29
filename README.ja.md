@@ -2,23 +2,23 @@
 
 [English](README.md) | [日本語](README.ja.md)
 
-VS Code extension to highlight text with configurable colors.
+エディタ内のテキストを設定した色でハイライトできる VS Code 拡張です。
 
-## Features
+## 特徴
 
-- Use `Add Highlight` from the current selection or cursor position
-- Use `Add Highlight...` from an input box with search mode (`Text` / `Word` / `Regex`) and case sensitivity options, using the panel values as defaults
-- Run Casowa Highlight actions from a single editor context submenu
-- Select highlighted text from a quick pick list with `Select Highlighted Word`
-- Open the bottom panel with `Open Highlighted Panel`
-- Jump to the next match with `Next Highlighted Match`
-- Remove the highlight at the cursor position with `Remove Highlight`
-- Clear all highlights in open editors with `Clear All Highlights`
-- Configure background and foreground colors for both light and dark palettes
-- Switch highlight colors with `auto`, `light`, or `dark`
-- Highlight up to 16 words or text strings, with 8 filled highlights and 8 outline highlights using the same 8 colors
+- 選択中の文字列、またはカーソル位置の単語を `Add Highlight` でハイライト
+- 入力ボックスから `Add Highlight...` で検索方法（テキスト / 単語 / 正規表現）と大文字小文字の区別を選んでハイライトし、パネルの値を既定値として使用
+- エディタの右クリックメニューから `Casowa Highlight` の各操作を実行可能
+- `Select Highlighted Word` でハイライト中のテキストを一覧から選択
+- 下部パネルの `Highlighted` ビューでハイライト中のテキストを色付きで表示
+- `Next Highlighted Match` で選択中のテキストの次の一致箇所へ移動
+- `Remove Highlight` でカーソル位置のハイライトを解除
+- `Clear All Highlights` で開いているファイルのハイライトをすべて解除
+- light / dark それぞれの配色を設定可能
+- `auto` / `light` / `dark` で配色モードを切り替え可能
+- 16個までハイライトでき、8個は背景塗りつぶし、残り8個は同じ8色の枠表示
 
-## Commands
+## コマンド
 
 - `Casowa Highlight: Add Highlight`
 - `Casowa Highlight: Add Highlight...`
@@ -28,9 +28,9 @@ VS Code extension to highlight text with configurable colors.
 - `Casowa Highlight: Remove Highlight`
 - `Casowa Highlight: Clear All Highlights`
 
-## Settings
+## 設定
 
-Each highlight pattern has these settings:
+各ハイライト色には次の設定があります。
 
 - `casowaHighlight.colorMode`
 - `casowaHighlight.light.patternN.backgroundColor`
@@ -38,16 +38,16 @@ Each highlight pattern has these settings:
 - `casowaHighlight.dark.patternN.backgroundColor`
 - `casowaHighlight.dark.patternN.foregroundColor`
 
-`N` can be `1` to `8`.
+`N` は `1` から `8` です。
 
-The extension uses 8 configured colors across 16 highlights:
+この拡張は合計 16 個のハイライトを使えます。
 
-- Highlights `1` to `8` use the 8 colors as filled highlights.
-- Highlights `9` to `16` reuse the same 8 colors as outline highlights.
+- `1` から `8` は、設定した 8 色を塗りつぶしで使用します。
+- `9` から `16` は、同じ 8 色を枠表示で再利用します。
 
-When `casowaHighlight.colorMode` is `auto`, highlight colors follow the current VS Code theme.
+`casowaHighlight.colorMode` が `auto` の場合、ハイライト色は現在の VS Code テーマに追従します。
 
-## Sample settings.json for light themes
+## 設定例: light テーマ
 
 ```json
 {
@@ -71,7 +71,7 @@ When `casowaHighlight.colorMode` is `auto`, highlight colors follow the current 
 }
 ```
 
-## Sample settings.json for dark themes
+## 設定例: dark テーマ
 
 ```json
 {
@@ -95,7 +95,7 @@ When `casowaHighlight.colorMode` is `auto`, highlight colors follow the current 
 }
 ```
 
-## Sample settings.json for auto mode
+## 設定例: auto
 
 ```json
 {
@@ -103,7 +103,7 @@ When `casowaHighlight.colorMode` is `auto`, highlight colors follow the current 
 }
 ```
 
-## Development
+## 開発
 
 ### PowerShell
 
@@ -113,7 +113,7 @@ npm.cmd run compile
 npx.cmd @vscode/vsce package
 ```
 
-### Command Prompt
+### コマンド プロンプト
 
 ```cmd
 npm install
@@ -121,12 +121,12 @@ npm run compile
 npx @vscode/vsce package
 ```
 
-Press `F5` in VS Code to launch the extension in Extension Development Host.
+VS Code で `F5` を押すと、Extension Development Host で拡張を起動できます。
 
-## Note
+## 補足
 
-This extension was created with the help of OpenAI Codex (GPT-5 based).
+この拡張は OpenAI Codex (GPT-5 based) の支援を受けて作成しました。
 
-## License
+## ライセンス
 
 MIT
