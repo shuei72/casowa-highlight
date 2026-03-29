@@ -2,6 +2,7 @@
   "name": "casowa-highlight",
   "displayName": "Casowa Highlight",
   "description": "VS Code extension to highlight text with configurable colors.",
+  "icon": "media/extension-icon.png",
   "version": "0.1.0",
   "publisher": "shuei",
   "author": "shuei",
@@ -62,11 +63,20 @@
       }
     ],
     "views": {
-      "panel": [
+      "casowaHighlight.panel": [
         {
           "type": "webview",
           "id": "casowaHighlight.highlightedWordsPanel",
           "name": "Highlighted",
+          "icon": "media/highlighted-view.svg"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "panel": [
+        {
+          "id": "casowaHighlight.panel",
+          "title": "Casowa Highlight",
           "icon": "media/highlighted-view.svg"
         }
       ]
