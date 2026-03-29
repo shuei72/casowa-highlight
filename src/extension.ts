@@ -50,7 +50,7 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     highlightedWordsPanelProvider,
     vscode.window.registerWebviewViewProvider(
-      'casowaHighlight.highlightedWordsPanel',
+      'casowa-highlighted-words-panel',
       highlightedWordsPanelProvider
     ),
     vscode.commands.registerCommand('casowaHighlight.highlightWordFromContext', async () => {
@@ -192,7 +192,7 @@ export function activate(context: vscode.ExtensionContext): void {
       highlightedWordsPanelProvider.refresh();
     }),
     vscode.commands.registerCommand('casowaHighlight.showHighlightedPanel', async () => {
-      await vscode.commands.executeCommand('casowaHighlight.highlightedWordsPanel.focus');
+      await vscode.commands.executeCommand('casowa-highlighted-words-panel.focus');
     }),
     vscode.commands.registerCommand('casowaHighlight.jumpToNextSelectedHighlightedWord', async () => {
       const editor = vscode.window.activeTextEditor;

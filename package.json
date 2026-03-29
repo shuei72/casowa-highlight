@@ -63,10 +63,10 @@
       }
     ],
     "views": {
-      "casowaHighlight.panel": [
+      "casowa-highlight-panel": [
         {
           "type": "webview",
-          "id": "casowaHighlight.highlightedWordsPanel",
+          "id": "casowa-highlighted-words-panel",
           "name": "Highlighted",
           "icon": "media/highlighted-view.svg"
         }
@@ -75,7 +75,7 @@
     "viewsContainers": {
       "panel": [
         {
-          "id": "casowaHighlight.panel",
+          "id": "casowa-highlight-panel",
           "title": "Casowa Highlight",
           "icon": "media/highlighted-view.svg"
         }
@@ -83,18 +83,18 @@
     },
     "submenus": [
       {
-        "id": "casowaHighlight.editorMenu",
+        "id": "casowa-highlight-editor-menu",
         "label": "Casowa Highlight"
       }
     ],
     "menus": {
       "editor/context": [
         {
-          "submenu": "casowaHighlight.editorMenu",
+          "submenu": "casowa-highlight-editor-menu",
           "group": "navigation@100"
         }
       ],
-      "casowaHighlight.editorMenu": [
+      "casowa-highlight-editor-menu": [
         {
           "command": "casowaHighlight.highlightWordFromContext",
           "group": "1_add@1"
