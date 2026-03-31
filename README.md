@@ -2,56 +2,85 @@
 
 [English](README.md) | [日本語](README.ja.md)
 
-VS Code extension to highlight text with configurable colors.
-
-## Features
-
-- Use `Add Highlight` from the current selection or cursor position
-- Use `Add Highlight...` from an input box with search mode (`Text` / `Word` / `Regex`) and case sensitivity options, using the panel values as defaults
-- Run Casowa Highlight actions from a single editor context submenu
-- Select highlighted text from a quick pick list with `Select Highlighted Word`
-- Open the bottom panel with `Open Highlighted Panel`
-- Jump to the next match with `Next Highlighted Match`
-- Remove the highlight at the cursor position with `Remove Highlight`
-- Clear all highlights in open editors with `Clear All Highlights`
-- Configure background and foreground colors for both light and dark palettes
-- Switch highlight colors with `auto`, `light`, or `dark`
-- Highlight up to 16 words or text strings, with 8 filled highlights and 8 outline highlights using the same 8 colors
+VS Code extension for word and search highlighting. Supports a highlight list view and save/load.
 
 ## Commands
 
-- `Casowa Highlight: Add Highlight`
-- `Casowa Highlight: Add Highlight...`
-- `Casowa Highlight: Select Highlighted Word`
-- `Casowa Highlight: Open Highlighted Panel`
-- `Casowa Highlight: Next Highlighted Match`
-- `Casowa Highlight: Remove Highlight`
-- `Casowa Highlight: Clear All Highlights`
+- `Casowa Highlight: Add Word Highlight`<br>
+  Highlights the word at the cursor or the current selection.
+
+- `Casowa Highlight: Add Search Highlight`<br>
+  Adds a highlight from an input box with search mode (`Text` / `Word` / `Regex`) and case sensitivity options, using the panel values as defaults.
+
+- `Casowa Highlight: Toggle Highlight`<br>
+  Adds a highlight when the current word is not highlighted, or removes the highlight at the cursor when it is.
+
+- `Casowa Highlight: Remove Highlight`<br>
+  Removes the highlight at the cursor position.
+
+- `Casowa Highlight: Clear All Highlights`<br>
+  Clears all highlights.
+
+- `Casowa Highlight: Toggle Display`<br>
+  Toggles highlight visibility.
+
+- `Casowa Highlight: Select Highlighted Word`<br>
+  Selects a highlight from the list.
+
+- `Casowa Highlight: Open Highlighted Panel`<br>
+  Opens the highlight list panel.
+
+- `Casowa Highlight: Next Highlighted Match`<br>
+  Moves to the next match for the selected highlight.
+
+- `Casowa Highlight: Previous Highlighted Match`<br>
+  Moves to the previous match for the selected highlight.
+
+- `Casowa Highlight: Save Highlights`<br>
+  Saves the current highlights.
+
+- `Casowa Highlight: Load Highlights`<br>
+  Loads a saved highlight state.
+
+## Panel
+
+- Shows the list of current highlights. Also shows the match count for each highlight.
+- Click or Shift-click a highlight to move to the next or previous match.
+- Jump to the previous or next match with the arrow buttons next to highlights. Toggle their visibility in settings.
+- Save the current highlight state with the `Save` button. The 5 most recent saved states are kept. Right-click `Save` to choose which of the 5 saved slots to replace.
+- Load the most recently saved highlight state with the `Load` button. Right-click `Load` to choose which saved state to load.
+
+## Other Features
+
+- Run Casowa Highlight actions from a single editor context submenu
+- Supports up to 16 highlights. The first 8 use filled highlights, and the next 8 use outline highlights
 
 ## Settings
 
-Each highlight pattern has these settings:
+- `casowaHighlight.colorMode`<br>
+  Switches the highlight color mode between `auto`, `light`, and `dark`. In `auto` mode, highlight colors follow the current VS Code theme.
 
-- `casowaHighlight.colorMode`
-- `casowaHighlight.light.patternN.backgroundColor`
-- `casowaHighlight.light.patternN.foregroundColor`
-- `casowaHighlight.dark.patternN.backgroundColor`
-- `casowaHighlight.dark.patternN.foregroundColor`
+- `casowaHighlight.showPanelJumpButtons`<br>
+  Shows or hides the previous/next jump arrow buttons on highlight chips in the panel with `true` or `false`. The default is `true`.
 
-`N` can be `1` to `8`.
+- `casowaHighlight.light.patternN.backgroundColor`<br>
+  Sets the background color for light theme highlight pattern `N`.
 
-The extension uses 8 configured colors across 16 highlights:
+- `casowaHighlight.light.patternN.foregroundColor`<br>
+  Sets the foreground color for light theme highlight pattern `N`.
 
-- Highlights `1` to `8` use the 8 colors as filled highlights.
-- Highlights `9` to `16` reuse the same 8 colors as outline highlights.
+- `casowaHighlight.dark.patternN.backgroundColor`<br>
+  Sets the background color for dark theme highlight pattern `N`.
 
-When `casowaHighlight.colorMode` is `auto`, highlight colors follow the current VS Code theme.
+- `casowaHighlight.dark.patternN.foregroundColor`<br>
+  Sets the foreground color for dark theme highlight pattern `N`.
 
-## Sample settings.json for light themes
+`N` can be `1` to `8`. The configured 8 colors are used for both filled highlights and outline highlights.
+
+## Default settings.json for light themes
 
 ```json
 {
-  "casowaHighlight.colorMode": "light",
   "casowaHighlight.light.pattern1.backgroundColor": "#FFE066",
   "casowaHighlight.light.pattern1.foregroundColor": "#2B2200",
   "casowaHighlight.light.pattern2.backgroundColor": "#FFB86B",
@@ -71,11 +100,10 @@ When `casowaHighlight.colorMode` is `auto`, highlight colors follow the current 
 }
 ```
 
-## Sample settings.json for dark themes
+## Default settings.json for dark themes
 
 ```json
 {
-  "casowaHighlight.colorMode": "dark",
   "casowaHighlight.dark.pattern1.backgroundColor": "#8A6A00",
   "casowaHighlight.dark.pattern1.foregroundColor": "#FFF8D6",
   "casowaHighlight.dark.pattern2.backgroundColor": "#A04F00",
@@ -92,14 +120,6 @@ When `casowaHighlight.colorMode` is `auto`, highlight colors follow the current 
   "casowaHighlight.dark.pattern7.foregroundColor": "#F0EBFF",
   "casowaHighlight.dark.pattern8.backgroundColor": "#B03072",
   "casowaHighlight.dark.pattern8.foregroundColor": "#FBEFFF"
-}
-```
-
-## Sample settings.json for auto mode
-
-```json
-{
-  "casowaHighlight.colorMode": "auto"
 }
 ```
 

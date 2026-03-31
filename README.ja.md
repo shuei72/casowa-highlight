@@ -2,56 +2,85 @@
 
 [English](README.md) | [日本語](README.ja.md)
 
-エディタ内のテキストを設定した色でハイライトできる VS Code 拡張です。
-
-## 特徴
-
-- 選択中の文字列、またはカーソル位置の単語を `Add Highlight` でハイライト
-- 入力ボックスから `Add Highlight...` で検索方法（テキスト / 単語 / 正規表現）と大文字小文字の区別を選んでハイライトし、パネルの値を既定値として使用
-- エディタの右クリックメニューから `Casowa Highlight` の各操作を実行可能
-- `Select Highlighted Word` でハイライト中のテキストを一覧から選択
-- 下部パネルの `Highlighted` ビューでハイライト中のテキストを色付きで表示
-- `Next Highlighted Match` で選択中のテキストの次の一致箇所へ移動
-- `Remove Highlight` でカーソル位置のハイライトを解除
-- `Clear All Highlights` で開いているファイルのハイライトをすべて解除
-- light / dark それぞれの配色を設定可能
-- `auto` / `light` / `dark` で配色モードを切り替え可能
-- 16個までハイライトでき、8個は背景塗りつぶし、残り8個は同じ8色の枠表示
+単語検索や文字列検索をハイライトするVS Code拡張です。ハイライト一覧表示と保存/読込にも対応しています。
 
 ## コマンド
 
-- `Casowa Highlight: Add Highlight`
-- `Casowa Highlight: Add Highlight...`
-- `Casowa Highlight: Select Highlighted Word`
-- `Casowa Highlight: Open Highlighted Panel`
-- `Casowa Highlight: Next Highlighted Match`
-- `Casowa Highlight: Remove Highlight`
-- `Casowa Highlight: Clear All Highlights`
+- `Casowa Highlight: Add Word Highlight`<br>
+  カーソル位置の単語または選択中の文字列をハイライトします。
+
+- `Casowa Highlight: Add Search Highlight`<br>
+  入力ボックスから検索方法(テキスト/単語/正規表現)と大文字小文字の区別を選んでハイライトします。パネルの値を既定値として使います。
+
+- `Casowa Highlight: Toggle Highlight`<br>
+  カーソル位置にハイライトがなければ単語を追加し、あればその位置のハイライトを解除します。
+
+- `Casowa Highlight: Remove Highlight`<br>
+  カーソル位置のハイライトを解除します。
+
+- `Casowa Highlight: Clear All Highlights`<br>
+  すべてのハイライトを解除します。
+
+- `Casowa Highlight: Toggle Display`<br>
+  ハイライトの表示/非表示を切り替えます。
+
+- `Casowa Highlight: Select Highlighted Word`<br>
+  一覧からハイライトを選択します。
+
+- `Casowa Highlight: Open Highlighted Panel`<br>
+  ハイライト一覧パネルを開きます。
+
+- `Casowa Highlight: Next Highlighted Match`<br>
+  選択中のハイライトの次の一致箇所へ移動します。
+
+- `Casowa Highlight: Previous Highlighted Match`<br>
+  選択中のハイライトの前の一致箇所へ移動します。
+
+- `Casowa Highlight: Save Highlights`<br>
+  現在のハイライトを保存します。
+
+- `Casowa Highlight: Load Highlights`<br>
+  保存済みのハイライト状態を読み込みます。
+
+## パネル
+
+- 現在のハイライト一覧を表示します。各ハイライトの一致件数も確認できます。
+- ハイライトをクリック/Shift+クリックすると、前後の一致箇所へ移動できます。
+- ハイライトの横にある矢印ボタンで、前後の一致箇所へ移動できます。設定で表示/非表示を切り替えられます。
+- `Save`ボタンで現在のハイライト状態を保存できます。最新5件分を保持します。`Save`を右クリックすると5件の保存先から選べます。
+- `Load`ボタンで最新の保存済みハイライト状態を読み込めます。`Load`を右クリックすると読込元を選べます。
+
+## その他の特徴
+
+- エディタの右クリックメニューから`Casowa Highlight`の各操作を実行可能
+- 16個までハイライトできます。最初の8個は塗りつぶし表示、次の8個は枠表示になります
 
 ## 設定
 
-各ハイライト色には次の設定があります。
+- `casowaHighlight.colorMode`<br>
+  ハイライトの配色モードを`auto`/`light`/`dark`で切り替えます。`auto`モードでは現在のVS Codeテーマに追従します。
 
-- `casowaHighlight.colorMode`
-- `casowaHighlight.light.patternN.backgroundColor`
-- `casowaHighlight.light.patternN.foregroundColor`
-- `casowaHighlight.dark.patternN.backgroundColor`
-- `casowaHighlight.dark.patternN.foregroundColor`
+- `casowaHighlight.showPanelJumpButtons`<br>
+  パネルのハイライトチップにある前後移動用の矢印ボタンの表示/非表示を`true`/`false`で切り替えます。既定値は`true`です。
 
-`N` は `1` から `8` です。
+- `casowaHighlight.light.patternN.backgroundColor`<br>
+  lightテーマのハイライトパターン`N`の背景色を設定します。
 
-この拡張は合計 16 個のハイライトを使えます。
+- `casowaHighlight.light.patternN.foregroundColor`<br>
+  lightテーマのハイライトパターン`N`の文字色を設定します。
 
-- `1` から `8` は、設定した 8 色を塗りつぶしで使用します。
-- `9` から `16` は、同じ 8 色を枠表示で再利用します。
+- `casowaHighlight.dark.patternN.backgroundColor`<br>
+  darkテーマのハイライトパターン`N`の背景色を設定します。
 
-`casowaHighlight.colorMode` が `auto` の場合、ハイライト色は現在の VS Code テーマに追従します。
+- `casowaHighlight.dark.patternN.foregroundColor`<br>
+  darkテーマのハイライトパターン`N`の文字色を設定します。
 
-## 設定例: light テーマ
+`N`は`1`から`8`です。設定した8色は、塗りつぶし表示と枠表示の両方で使います。
+
+## デフォルト値: lightテーマ
 
 ```json
 {
-  "casowaHighlight.colorMode": "light",
   "casowaHighlight.light.pattern1.backgroundColor": "#FFE066",
   "casowaHighlight.light.pattern1.foregroundColor": "#2B2200",
   "casowaHighlight.light.pattern2.backgroundColor": "#FFB86B",
@@ -71,11 +100,10 @@
 }
 ```
 
-## 設定例: dark テーマ
+## デフォルト値: darkテーマ
 
 ```json
 {
-  "casowaHighlight.colorMode": "dark",
   "casowaHighlight.dark.pattern1.backgroundColor": "#8A6A00",
   "casowaHighlight.dark.pattern1.foregroundColor": "#FFF8D6",
   "casowaHighlight.dark.pattern2.backgroundColor": "#A04F00",
@@ -92,14 +120,6 @@
   "casowaHighlight.dark.pattern7.foregroundColor": "#F0EBFF",
   "casowaHighlight.dark.pattern8.backgroundColor": "#B03072",
   "casowaHighlight.dark.pattern8.foregroundColor": "#FBEFFF"
-}
-```
-
-## 設定例: auto
-
-```json
-{
-  "casowaHighlight.colorMode": "auto"
 }
 ```
 
@@ -121,11 +141,11 @@ npm run compile
 npx @vscode/vsce package
 ```
 
-VS Code で `F5` を押すと、Extension Development Host で拡張を起動できます。
+VS Codeで`F5`を押すと、Extension Development Hostで拡張を起動できます。
 
 ## 補足
 
-この拡張は OpenAI Codex (GPT-5 based) の支援を受けて作成しました。
+この拡張はOpenAI Codex (GPT-5 based)の支援を受けて作成しました。
 
 ## ライセンス
 

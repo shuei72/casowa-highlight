@@ -34,46 +34,111 @@ type InputHighlightDefaults = {
   mode: HighlightSearchMode;
 };
 
-const highlightStore: HighlightEntry[] = [];
+type HighlightSnapshot = {
+  entries: Array<HighlightEntry | Omit<HighlightEntry, 'patternIndex'> & { patternIndex?: number }>;
+  version: 1;
+};
+
+type SavedHighlightSnapshot = {
+  savedAt: string;
+  snapshot: HighlightSnapshot;
+};
+
+type SavedHighlightSnapshotQuickPickItem = vscode.QuickPickItem & {
+  snapshotRecord: SavedHighlightSnapshot;
+};
+
+type SaveHighlightSlotQuickPickItem = vscode.QuickPickItem & {
+  targetIndex: number;
+};
+
+const HIGHLIGHT_SNAPSHOT_HISTORY_LIMIT = 5;
+const HIGHLIGHT_SNAPSHOT_HISTORY_FILE_NAME = 'highlightSnapshotHistory.json';
+
+const highlightEntriesStore: HighlightEntry[] = [];
 let reuseStartIndexStore = 0;
-let selectedHighlightedWordStore: string | undefined;
-let inputHighlightDefaults: InputHighlightDefaults = {
+let selectedHighlightEntryKeyStore: string | undefined;
+let highlightDisplayEnabled = true;
+let searchHighlightDefaults: InputHighlightDefaults = {
   caseSensitive: false,
   mode: 'text'
 };
 let decorationTypes: vscode.TextEditorDecorationType[] = [];
 
+function resolveHighlightStorageUri(context: vscode.ExtensionContext): vscode.Uri | undefined {
+  return context.storageUri ?? context.globalStorageUri;
+}
+
 export function activate(context: vscode.ExtensionContext): void {
   decorationTypes = createDecorationTypes();
-  const highlightedWordsPanelProvider = new HighlightedWordsPanelProvider();
+  const getStorageUri = (): vscode.Uri | undefined => resolveHighlightStorageUri(context);
+  const highlightPanelProvider = new HighlightPanelProvider(getStorageUri);
+  const refreshDecorations = (): void => {
+    for (const decorationType of decorationTypes) {
+      decorationType.dispose();
+    }
+
+    decorationTypes = createDecorationTypes();
+
+    renderHighlightsForVisibleEditors();
+    highlightPanelProvider.refresh();
+  };
 
   context.subscriptions.push(
-    highlightedWordsPanelProvider,
+    highlightPanelProvider,
     vscode.window.registerWebviewViewProvider(
       'casowa-highlighted-words-panel',
-      highlightedWordsPanelProvider
+      highlightPanelProvider
     ),
-    vscode.commands.registerCommand('casowaHighlight.highlightWordFromContext', async () => {
+    vscode.commands.registerCommand('casowaHighlight.addWordHighlight', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
         return;
       }
 
-      const word = getSelectedOrCurrentWord(editor);
-      if (!word) {
+      const selectedText = editor.document.getText(editor.selection).trim();
+      const query = selectedText || getWordAtCursor(editor);
+      if (!query) {
         vscode.window.showInformationMessage('No word is available to highlight.');
         return;
       }
 
       addHighlight({
         caseSensitive: true,
-        mode: 'word',
-        query: word
+        mode: selectedText ? 'text' : 'word',
+        query
       });
       renderHighlightsForVisibleEditors();
-      highlightedWordsPanelProvider.refresh();
+      highlightPanelProvider.refresh();
     }),
-    vscode.commands.registerCommand('casowaHighlight.highlightInputWord', async () => {
+    vscode.commands.registerCommand('casowaHighlight.toggleHighlight', async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        return;
+      }
+
+      const existingEntry = getHighlightEntryAtPosition(editor.document, editor.selection.active);
+      if (existingEntry) {
+        removeHighlight(existingEntry);
+      } else {
+        const selectedText = editor.document.getText(editor.selection).trim();
+        const query = selectedText || getWordAtCursor(editor);
+        if (!query) {
+          vscode.window.showInformationMessage('No word is available to toggle.');
+          return;
+        }
+
+        addHighlight({
+          caseSensitive: true,
+          mode: selectedText ? 'text' : 'word',
+          query
+        });
+      }
+
+      renderHighlightsForVisibleEditors();
+      highlightPanelProvider.refresh();
+    }),
+    vscode.commands.registerCommand('casowaHighlight.addSearchHighlight', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
         return;
@@ -113,16 +178,16 @@ export function activate(context: vscode.ExtensionContext): void {
         return;
       }
 
-      inputHighlightDefaults = {
+      searchHighlightDefaults = {
         caseSensitive,
         mode
       };
 
       addHighlight(entry);
       renderHighlightsForVisibleEditors();
-      highlightedWordsPanelProvider.refresh();
+      highlightPanelProvider.refresh();
     }),
-    vscode.commands.registerCommand('casowaHighlight.clearCurrentWordHighlight', async () => {
+    vscode.commands.registerCommand('casowaHighlight.removeHighlight', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
         return;
@@ -136,7 +201,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
       removeHighlight(entry);
       renderHighlightsForVisibleEditors();
-      highlightedWordsPanelProvider.refresh();
+      highlightPanelProvider.refresh();
     }),
     vscode.commands.registerCommand('casowaHighlight.clearAllHighlights', async () => {
       const editor = vscode.window.activeTextEditor;
@@ -146,9 +211,26 @@ export function activate(context: vscode.ExtensionContext): void {
 
       clearAllHighlights();
       renderHighlightsForVisibleEditors();
-      highlightedWordsPanelProvider.refresh();
+      highlightPanelProvider.refresh();
     }),
-    vscode.commands.registerCommand('casowaHighlight.showHighlightedWords', async () => {
+    vscode.commands.registerCommand('casowaHighlight.toggleDisplay', async () => {
+      highlightDisplayEnabled = !highlightDisplayEnabled;
+      renderHighlightsForVisibleEditors();
+      highlightPanelProvider.refresh();
+    }),
+    vscode.commands.registerCommand('casowaHighlight.saveHighlights', async () => {
+      await saveHighlightsToStorage(getStorageUri());
+    }),
+    vscode.commands.registerCommand('casowaHighlight.loadHighlights', async () => {
+      const loaded = await loadHighlightsFromStorage(getStorageUri(), 'pick');
+      if (!loaded) {
+        return;
+      }
+
+      renderHighlightsForVisibleEditors();
+      highlightPanelProvider.refresh();
+    }),
+    vscode.commands.registerCommand('casowaHighlight.selectHighlightedWord', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
         return;
@@ -187,20 +269,20 @@ export function activate(context: vscode.ExtensionContext): void {
         return;
       }
 
-      selectHighlightedWord(selectedItem.entry);
+      selectHighlight(selectedItem.entry);
       jumpToNextRange(editor, ranges);
-      highlightedWordsPanelProvider.refresh();
+      highlightPanelProvider.refresh();
     }),
     vscode.commands.registerCommand('casowaHighlight.showHighlightedPanel', async () => {
       await vscode.commands.executeCommand('casowa-highlighted-words-panel.focus');
     }),
-    vscode.commands.registerCommand('casowaHighlight.jumpToNextSelectedHighlightedWord', async () => {
+    vscode.commands.registerCommand('casowaHighlight.nextHighlightedMatch', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
         return;
       }
 
-      const selectedEntry = getSelectedHighlightedWord();
+      const selectedEntry = getSelectedHighlight();
       if (!selectedEntry) {
         vscode.window.showInformationMessage('No highlighted text is currently selected.');
         return;
@@ -213,9 +295,30 @@ export function activate(context: vscode.ExtensionContext): void {
       }
 
       jumpToNextRange(editor, ranges);
-      highlightedWordsPanelProvider.refresh();
+      highlightPanelProvider.refresh();
     }),
-    vscode.commands.registerCommand('casowaHighlight.copyHighlightedWord', async (entryKey: string) => {
+    vscode.commands.registerCommand('casowaHighlight.previousHighlightedMatch', async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        return;
+      }
+
+      const selectedEntry = getSelectedHighlight();
+      if (!selectedEntry) {
+        vscode.window.showInformationMessage('No highlighted text is currently selected.');
+        return;
+      }
+
+      const ranges = findHighlightRanges(editor.document, selectedEntry);
+      if (ranges.length === 0) {
+        vscode.window.showInformationMessage('The selected highlighted text was not found.');
+        return;
+      }
+
+      jumpToPreviousRange(editor, ranges);
+      highlightPanelProvider.refresh();
+    }),
+    vscode.commands.registerCommand('casowaHighlight.copyHighlightQuery', async (entryKey: string) => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
         return;
@@ -228,7 +331,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
       await vscode.env.clipboard.writeText(entry.query);
     }),
-    vscode.commands.registerCommand('casowaHighlight.copyAllHighlightedWords', async () => {
+    vscode.commands.registerCommand('casowaHighlight.copyAllHighlightQueries', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
         return;
@@ -241,7 +344,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
       await vscode.env.clipboard.writeText(words.join('\n'));
     }),
-    vscode.commands.registerCommand('casowaHighlight.removeHighlightedWord', async (entryKey: string) => {
+    vscode.commands.registerCommand('casowaHighlight.removeStoredHighlight', async (entryKey: string) => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
         return;
@@ -254,12 +357,12 @@ export function activate(context: vscode.ExtensionContext): void {
 
       removeHighlight(entry);
       renderHighlightsForVisibleEditors();
-      highlightedWordsPanelProvider.refresh();
+      highlightPanelProvider.refresh();
     }),
     vscode.workspace.onDidChangeTextDocument((event) => {
-      if (highlightStore.length > 0) {
+      if (highlightEntriesStore.length > 0) {
         renderHighlightsForDocument(event.document);
-        highlightedWordsPanelProvider.refresh();
+        highlightPanelProvider.refresh();
       }
     }),
     vscode.window.onDidChangeVisibleTextEditors((editors) => {
@@ -267,24 +370,25 @@ export function activate(context: vscode.ExtensionContext): void {
         renderHighlightsForDocument(editor.document);
       }
 
-      highlightedWordsPanelProvider.refresh();
+      highlightPanelProvider.refresh();
     }),
     vscode.window.onDidChangeActiveTextEditor(() => {
-      highlightedWordsPanelProvider.refresh();
+      highlightPanelProvider.refresh();
     }),
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (!event.affectsConfiguration('casowaHighlight')) {
         return;
       }
 
-      for (const decorationType of decorationTypes) {
-        decorationType.dispose();
+      refreshDecorations();
+    }),
+    vscode.window.onDidChangeActiveColorTheme(() => {
+      const colorMode = vscode.workspace.getConfiguration('casowaHighlight').get<'auto' | 'light' | 'dark'>('colorMode', 'auto');
+      if (colorMode !== 'auto') {
+        return;
       }
 
-      decorationTypes = createDecorationTypes();
-
-      renderHighlightsForVisibleEditors();
-      highlightedWordsPanelProvider.refresh();
+      refreshDecorations();
     }),
     ...decorationTypes
   );
@@ -300,13 +404,13 @@ export function deactivate(): void {
 
 function addHighlight(entryInput: Omit<HighlightEntry, 'patternIndex'> | HighlightEntry): void {
   const normalizedEntry = normalizeHighlightEntry(entryInput);
-  const existingEntry = highlightStore.find((entry) => getHighlightEntryKey(entry) === getHighlightEntryKey(normalizedEntry));
+  const existingEntry = highlightEntriesStore.find((entry) => getHighlightEntryKey(entry) === getHighlightEntryKey(normalizedEntry));
 
   if (existingEntry) {
     return;
   }
 
-  const usedPatternIndexes = new Set(highlightStore.map((entry) => entry.patternIndex));
+  const usedPatternIndexes = new Set(highlightEntriesStore.map((entry) => entry.patternIndex));
   let patternIndex = -1;
 
   for (let index = 0; index < PATTERN_COUNT; index += 1) {
@@ -318,47 +422,80 @@ function addHighlight(entryInput: Omit<HighlightEntry, 'patternIndex'> | Highlig
 
   if (patternIndex === -1) {
     patternIndex = reuseStartIndexStore;
-    const replaceIndex = highlightStore.findIndex((entry) => entry.patternIndex === patternIndex);
+    const replaceIndex = highlightEntriesStore.findIndex((entry) => entry.patternIndex === patternIndex);
     if (replaceIndex >= 0) {
-      highlightStore.splice(replaceIndex, 1);
+      highlightEntriesStore.splice(replaceIndex, 1);
     }
 
     reuseStartIndexStore = (patternIndex + 1) % PATTERN_COUNT;
   }
 
-  highlightStore.push({
+  highlightEntriesStore.push({
     ...normalizedEntry,
     patternIndex
   });
 
-  highlightStore.sort((left, right) => left.patternIndex - right.patternIndex);
+  highlightEntriesStore.sort((left, right) => left.patternIndex - right.patternIndex);
 }
 
 function removeHighlight(entryToRemove: HighlightEntry): void {
   const entryKey = getHighlightEntryKey(entryToRemove);
-  const nextEntries = highlightStore.filter((entry) => getHighlightEntryKey(entry) !== entryKey);
+  const nextEntries = highlightEntriesStore.filter((entry) => getHighlightEntryKey(entry) !== entryKey);
   if (nextEntries.length === 0) {
     clearAllHighlights();
     return;
   }
 
-  highlightStore.length = 0;
-  highlightStore.push(...nextEntries);
+  highlightEntriesStore.length = 0;
+  highlightEntriesStore.push(...nextEntries);
 
-  const selectedEntry = getSelectedHighlightedWord();
+  const selectedEntry = getSelectedHighlight();
   if (selectedEntry && getHighlightEntryKey(selectedEntry) === entryKey) {
-    selectedHighlightedWordStore = undefined;
+    selectedHighlightEntryKeyStore = undefined;
   }
 }
 
 function clearAllHighlights(): void {
-  highlightStore.length = 0;
+  highlightEntriesStore.length = 0;
   reuseStartIndexStore = 0;
-  selectedHighlightedWordStore = undefined;
+  selectedHighlightEntryKeyStore = undefined;
 }
 
 function getHighlightEntries(): HighlightEntry[] {
-  return highlightStore;
+  return highlightEntriesStore;
+}
+
+function replaceHighlights(entries: Array<HighlightEntry | Omit<HighlightEntry, 'patternIndex'> & { patternIndex?: number }>): void {
+  clearAllHighlights();
+
+  const assignedPatternIndexes = new Set<number>();
+
+  for (const entry of entries) {
+    const normalizedEntry = normalizeHighlightEntry(entry);
+    const requestedPatternIndex = typeof entry.patternIndex === 'number' ? entry.patternIndex : undefined;
+    const canReuseRequestedPattern =
+      requestedPatternIndex !== undefined &&
+      requestedPatternIndex >= 0 &&
+      requestedPatternIndex < PATTERN_COUNT &&
+      !assignedPatternIndexes.has(requestedPatternIndex);
+
+    if (canReuseRequestedPattern) {
+      highlightEntriesStore.push({
+        ...normalizedEntry,
+        patternIndex: requestedPatternIndex
+      });
+      assignedPatternIndexes.add(requestedPatternIndex);
+      continue;
+    }
+
+    addHighlight(normalizedEntry);
+    const addedEntry = highlightEntriesStore.find((item) => getHighlightEntryKey(item) === getHighlightEntryKey(normalizedEntry));
+    if (addedEntry) {
+      assignedPatternIndexes.add(addedEntry.patternIndex);
+    }
+  }
+
+  highlightEntriesStore.sort((left, right) => left.patternIndex - right.patternIndex);
 }
 
 function normalizeHighlightEntry(entry: Omit<HighlightEntry, 'patternIndex'> | HighlightEntry): Omit<HighlightEntry, 'patternIndex'> {
@@ -367,6 +504,287 @@ function normalizeHighlightEntry(entry: Omit<HighlightEntry, 'patternIndex'> | H
     mode: entry.mode,
     query: entry.query
   };
+}
+
+function createHighlightSnapshot(): HighlightSnapshot {
+  return {
+    version: 1,
+    entries: getHighlightEntries().map((entry) => ({ ...entry }))
+  };
+}
+
+function isHighlightSearchMode(value: unknown): value is HighlightSearchMode {
+  return value === 'text' || value === 'word' || value === 'regex';
+}
+
+function parseHighlightSnapshot(raw: unknown): HighlightSnapshot | undefined {
+  if (!raw || typeof raw !== 'object') {
+    return undefined;
+  }
+
+  const snapshot = raw as { entries?: unknown; version?: unknown };
+  if (snapshot.version !== 1 || !Array.isArray(snapshot.entries)) {
+    return undefined;
+  }
+
+  const entries = snapshot.entries.flatMap((entry): HighlightSnapshot['entries'] => {
+    if (!entry || typeof entry !== 'object') {
+      return [];
+    }
+
+    const candidate = entry as {
+      caseSensitive?: unknown;
+      mode?: unknown;
+      patternIndex?: unknown;
+      query?: unknown;
+    };
+
+    if (typeof candidate.caseSensitive !== 'boolean' || !isHighlightSearchMode(candidate.mode) || typeof candidate.query !== 'string') {
+      return [];
+    }
+
+    return [
+      {
+        caseSensitive: candidate.caseSensitive,
+        mode: candidate.mode,
+        patternIndex: typeof candidate.patternIndex === 'number' ? candidate.patternIndex : undefined,
+        query: candidate.query
+      }
+    ];
+  });
+
+  return {
+    version: 1,
+    entries
+  };
+}
+
+function parseSavedHighlightSnapshot(raw: unknown): SavedHighlightSnapshot | undefined {
+  if (!raw || typeof raw !== 'object') {
+    return undefined;
+  }
+
+  const candidate = raw as { savedAt?: unknown; snapshot?: unknown };
+  if (typeof candidate.savedAt !== 'string') {
+    return undefined;
+  }
+
+  const snapshot = parseHighlightSnapshot(candidate.snapshot);
+  if (!snapshot) {
+    return undefined;
+  }
+
+  return {
+    savedAt: candidate.savedAt,
+    snapshot
+  };
+}
+
+function encodeUtf8(value: string): Uint8Array {
+  const encoded = encodeURIComponent(value);
+  const bytes: number[] = [];
+
+  for (let index = 0; index < encoded.length; index += 1) {
+    const character = encoded[index];
+    if (character === '%') {
+      bytes.push(Number.parseInt(encoded.slice(index + 1, index + 3), 16));
+      index += 2;
+      continue;
+    }
+
+    bytes.push(character.charCodeAt(0));
+  }
+
+  return Uint8Array.from(bytes);
+}
+
+function decodeUtf8(bytes: Uint8Array): string {
+  const encoded = Array.from(bytes, (byte) => `%${byte.toString(16).padStart(2, '0')}`).join('');
+  return decodeURIComponent(encoded);
+}
+
+function getHighlightSnapshotHistoryUri(storageUri: vscode.Uri): vscode.Uri {
+  return vscode.Uri.joinPath(storageUri, HIGHLIGHT_SNAPSHOT_HISTORY_FILE_NAME);
+}
+
+async function getSavedHighlightSnapshotHistory(storageUri: vscode.Uri | undefined): Promise<SavedHighlightSnapshot[]> {
+  if (!storageUri) {
+    return [];
+  }
+
+  const historyUri = getHighlightSnapshotHistoryUri(storageUri);
+  let rawHistory: unknown;
+
+  try {
+    const fileContent = await vscode.workspace.fs.readFile(historyUri);
+    rawHistory = JSON.parse(decodeUtf8(fileContent));
+  } catch (error) {
+    if (error instanceof vscode.FileSystemError && error.code === 'FileNotFound') {
+      return [];
+    }
+
+    throw error;
+  }
+
+  if (!Array.isArray(rawHistory)) {
+    return [];
+  }
+
+  return rawHistory.flatMap((entry) => {
+    const snapshot = parseSavedHighlightSnapshot(entry);
+    return snapshot ? [snapshot] : [];
+  });
+}
+
+async function saveHighlightSnapshotHistory(storageUri: vscode.Uri, history: SavedHighlightSnapshot[]): Promise<void> {
+  await vscode.workspace.fs.createDirectory(storageUri);
+  const historyUri = getHighlightSnapshotHistoryUri(storageUri);
+  const raw = `${JSON.stringify(history, null, 2)}\n`;
+  await vscode.workspace.fs.writeFile(historyUri, encodeUtf8(raw));
+}
+
+async function openHighlightStorageFolder(storageUri: vscode.Uri | undefined): Promise<void> {
+  if (!storageUri) {
+    vscode.window.showInformationMessage('Highlight storage is not available.');
+    return;
+  }
+
+  await vscode.workspace.fs.createDirectory(storageUri);
+  await vscode.commands.executeCommand('revealFileInOS', storageUri);
+}
+
+function getSavedHighlightSnapshotSummary(snapshotRecord: SavedHighlightSnapshot): { description: string; detail: string } {
+  const queries = snapshotRecord.snapshot.entries.map((entry) => entry.query);
+  const preview = queries.slice(0, 3).join(', ');
+  const remainingCount = Math.max(queries.length - 3, 0);
+
+  return {
+    description: `${snapshotRecord.snapshot.entries.length} highlights`,
+    detail: remainingCount > 0 ? `${preview}, +${remainingCount} more` : preview
+  };
+}
+
+async function pickHighlightSaveTarget(history: SavedHighlightSnapshot[]): Promise<number | undefined> {
+  const items: SaveHighlightSlotQuickPickItem[] = Array.from({ length: HIGHLIGHT_SNAPSHOT_HISTORY_LIMIT }, (_, index) => {
+    const existingSnapshot = history[index];
+    if (!existingSnapshot) {
+      return {
+        label: `Slot ${index + 1}: Empty`,
+        description: 'Unused slot',
+        targetIndex: index
+      };
+    }
+
+    const summary = getSavedHighlightSnapshotSummary(existingSnapshot);
+    return {
+      label: `Slot ${index + 1}: ${formatSavedHighlightSnapshot(existingSnapshot.savedAt)}`,
+      description: summary.description,
+      detail: summary.detail,
+      targetIndex: index
+    };
+  });
+
+  const selected = await vscode.window.showQuickPick(items, {
+    ignoreFocusOut: true,
+    placeHolder: 'Select a save slot to replace'
+  });
+
+  return selected?.targetIndex;
+}
+
+async function saveHighlightsToStorage(storageUri: vscode.Uri | undefined, mode: 'append' | 'pick' = 'append'): Promise<void> {
+  if (!storageUri) {
+    vscode.window.showInformationMessage('Highlight storage is not available.');
+    return;
+  }
+
+  const snapshot = createHighlightSnapshot();
+  if (snapshot.entries.length === 0) {
+    vscode.window.showInformationMessage('There are no highlights to save.');
+    return;
+  }
+
+  const history = await getSavedHighlightSnapshotHistory(storageUri);
+  const nextSnapshot: SavedHighlightSnapshot = {
+    savedAt: new Date().toISOString(),
+    snapshot
+  };
+  let nextHistory: SavedHighlightSnapshot[];
+
+  if (mode === 'pick') {
+    const targetIndex = await pickHighlightSaveTarget(history);
+    if (targetIndex === undefined) {
+      return;
+    }
+
+    nextHistory = [nextSnapshot, ...history.filter((_, index) => index !== targetIndex)].slice(0, HIGHLIGHT_SNAPSHOT_HISTORY_LIMIT);
+  } else {
+    nextHistory = [nextSnapshot, ...history].slice(0, HIGHLIGHT_SNAPSHOT_HISTORY_LIMIT);
+  }
+
+  await saveHighlightSnapshotHistory(storageUri, nextHistory);
+  vscode.window.showInformationMessage('Saved the current highlights.');
+}
+
+function formatSavedHighlightSnapshot(savedAt: string): string {
+  const savedDate = new Date(savedAt);
+  if (Number.isNaN(savedDate.getTime())) {
+    return savedAt;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'medium'
+  }).format(savedDate);
+}
+
+async function pickSavedHighlightSnapshot(storageUri: vscode.Uri | undefined): Promise<SavedHighlightSnapshot | undefined> {
+  const history = await getSavedHighlightSnapshotHistory(storageUri);
+  if (history.length === 0) {
+    vscode.window.showInformationMessage('There are no saved highlight states.');
+    return undefined;
+  }
+
+  const items: SavedHighlightSnapshotQuickPickItem[] = history.map((snapshotRecord, index) => {
+    const summary = getSavedHighlightSnapshotSummary(snapshotRecord);
+
+    return {
+      label: formatSavedHighlightSnapshot(snapshotRecord.savedAt),
+      description: summary.description,
+      detail: summary.detail,
+      picked: index === 0,
+      snapshotRecord
+    };
+  });
+
+  const selected = await vscode.window.showQuickPick(items, {
+    ignoreFocusOut: true,
+    placeHolder: 'Select a saved highlight state to load'
+  });
+
+  return selected?.snapshotRecord;
+}
+
+async function getLatestSavedHighlightSnapshot(storageUri: vscode.Uri | undefined): Promise<SavedHighlightSnapshot | undefined> {
+  const history = await getSavedHighlightSnapshotHistory(storageUri);
+  if (history.length === 0) {
+    vscode.window.showInformationMessage('There are no saved highlight states.');
+    return undefined;
+  }
+
+  return history[0];
+}
+
+async function loadHighlightsFromStorage(storageUri: vscode.Uri | undefined, mode: 'latest' | 'pick'): Promise<boolean> {
+  const snapshotRecord = mode === 'latest'
+    ? await getLatestSavedHighlightSnapshot(storageUri)
+    : await pickSavedHighlightSnapshot(storageUri);
+  if (!snapshotRecord) {
+    return false;
+  }
+
+  replaceHighlights(snapshotRecord.snapshot.entries);
+  return true;
 }
 
 function getHighlightEntryKey(entry: Omit<HighlightEntry, 'patternIndex'> | HighlightEntry): string {
@@ -387,7 +805,7 @@ async function pickHighlightSearchMode(): Promise<HighlightSearchMode | undefine
 
   const selected = await showSingleSelectQuickPick(
     options,
-    (item) => item.mode === inputHighlightDefaults.mode,
+    (item) => item.mode === searchHighlightDefaults.mode,
     'Choose how to search for the text'
   );
 
@@ -400,7 +818,7 @@ async function pickCaseSensitivity(): Promise<boolean | undefined> {
       { label: 'Case-insensitive', value: false },
       { label: 'Case-sensitive', value: true }
     ],
-    (item) => item.value === inputHighlightDefaults.caseSensitive,
+    (item) => item.value === searchHighlightDefaults.caseSensitive,
     'Choose case sensitivity'
   );
 
@@ -449,8 +867,8 @@ async function showSingleSelectQuickPick<T extends vscode.QuickPickItem>(
   });
 }
 
-function getSelectedHighlightedWord(): HighlightEntry | undefined {
-  const entryKey = selectedHighlightedWordStore;
+function getSelectedHighlight(): HighlightEntry | undefined {
+  const entryKey = selectedHighlightEntryKeyStore;
   if (!entryKey) {
     return undefined;
   }
@@ -458,13 +876,13 @@ function getSelectedHighlightedWord(): HighlightEntry | undefined {
   return getHighlightEntries().find((entry) => getHighlightEntryKey(entry) === entryKey);
 }
 
-function selectHighlightedWord(entry: HighlightEntry): void {
-  selectedHighlightedWordStore = getHighlightEntryKey(entry);
+function selectHighlight(entry: HighlightEntry): void {
+  selectedHighlightEntryKeyStore = getHighlightEntryKey(entry);
 }
 
 function renderHighlightsForDocument(document: vscode.TextDocument): void {
   const entries = getHighlightEntries();
-  const rangesByPattern = getVisibleRangesByPattern(document, entries);
+  const rangesByPattern = highlightDisplayEnabled ? getVisibleRangesByPattern(document, entries) : new Map<number, vscode.Range[]>();
 
   for (const editor of vscode.window.visibleTextEditors) {
     if (editor.document !== document) {
@@ -642,11 +1060,62 @@ function getHighlightEntryAtPosition(document: vscode.TextDocument, position: vs
 }
 
 function jumpToNextRange(editor: vscode.TextEditor, ranges: vscode.Range[]): void {
-  const currentPosition = editor.selection.active;
-  const nextRange = ranges.find((range) => range.start.isAfter(currentPosition)) ?? ranges[0];
+  navigateToAdjacentRange(editor, ranges, 'next');
+}
 
-  editor.selection = new vscode.Selection(nextRange.start, nextRange.end);
-  editor.revealRange(nextRange, vscode.TextEditorRevealType.InCenter);
+function jumpToPreviousRange(editor: vscode.TextEditor, ranges: vscode.Range[]): void {
+  navigateToAdjacentRange(editor, ranges, 'previous');
+}
+
+function navigateToAdjacentRange(
+  editor: vscode.TextEditor,
+  ranges: vscode.Range[],
+  direction: 'next' | 'previous'
+): void {
+  const navigationTarget = getHighlightNavigationTarget(editor.selection, ranges, direction);
+  editor.selection = new vscode.Selection(navigationTarget.start, navigationTarget.end);
+  editor.revealRange(navigationTarget, vscode.TextEditorRevealType.InCenter);
+}
+
+function getHighlightNavigationTarget(
+  selection: vscode.Selection,
+  ranges: vscode.Range[],
+  direction: 'next' | 'previous'
+): vscode.Range {
+  const exactIndex = getExactRangeIndex(selection, ranges);
+  if (exactIndex >= 0) {
+    return getAdjacentRange(ranges, exactIndex, direction);
+  }
+
+  const containingIndex = getContainingRangeIndex(selection, ranges);
+  if (containingIndex >= 0) {
+    return direction === 'next' ? getAdjacentRange(ranges, containingIndex, direction) : ranges[containingIndex];
+  }
+
+  if (direction === 'next') {
+    return ranges.find((range) => range.start.isAfter(selection.active)) ?? ranges[0];
+  }
+
+  const previousRanges = ranges.filter((range) => range.start.isBefore(selection.start));
+  return previousRanges.length > 0 ? previousRanges[previousRanges.length - 1] : ranges[ranges.length - 1];
+}
+
+function getExactRangeIndex(selection: vscode.Selection, ranges: vscode.Range[]): number {
+  return ranges.findIndex((range) => range.start.isEqual(selection.start) && range.end.isEqual(selection.end));
+}
+
+function getAdjacentRange(ranges: vscode.Range[], currentIndex: number, direction: 'next' | 'previous'): vscode.Range {
+  const offset = direction === 'next' ? 1 : -1;
+  return ranges[(currentIndex + offset + ranges.length) % ranges.length];
+}
+
+function getContainingRangeIndex(selection: vscode.Selection, ranges: vscode.Range[]): number {
+  const anchor = selection.start;
+  return ranges.findIndex(
+    (range) =>
+      (range.start.isBefore(anchor) || range.start.isEqual(anchor)) &&
+      (range.end.isAfter(anchor) || range.end.isEqual(anchor))
+  );
 }
 
 function findHighlightRanges(document: vscode.TextDocument, entry: HighlightEntry): vscode.Range[] {
@@ -745,6 +1214,10 @@ function createDecorationTypes(): vscode.TextEditorDecorationType[] {
   return nextDecorationTypes;
 }
 
+function shouldShowPanelJumpButtons(): boolean {
+  return vscode.workspace.getConfiguration('casowaHighlight').get<boolean>('showPanelJumpButtons', true);
+}
+
 function getDecorationOptions(
   definition: PatternDefinition,
   isOutlinePattern: boolean
@@ -812,9 +1285,11 @@ function escapeXml(value: string): string {
     .replace(/>/g, '&gt;');
 }
 
-class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscode.Disposable {
+class HighlightPanelProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   private webviewView: vscode.WebviewView | undefined;
   private readonly disposables: vscode.Disposable[] = [];
+
+  constructor(private readonly getStorageUri: () => vscode.Uri | undefined) {}
 
   resolveWebviewView(webviewView: vscode.WebviewView): void {
     this.webviewView = webviewView;
@@ -825,6 +1300,7 @@ class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscod
       async (message: {
         caseSensitive?: boolean;
         command?: string;
+        direction?: 'next' | 'previous';
         entryKey?: string;
         mode?: HighlightSearchMode;
       }) => {
@@ -838,11 +1314,11 @@ class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscod
           return;
         }
 
-        if (message.command === 'jumpNext') {
+        if (message.command === 'jumpEntry' && message.entryKey && message.direction) {
           if (!editor) {
             return;
           }
-          await vscode.commands.executeCommand('casowaHighlight.jumpToNextSelectedHighlightedWord');
+          await this.jumpToEntry(message.entryKey, message.direction);
           return;
         }
 
@@ -850,7 +1326,7 @@ class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscod
           if (!editor) {
             return;
           }
-          await vscode.commands.executeCommand('casowaHighlight.copyHighlightedWord', message.entryKey);
+          await vscode.commands.executeCommand('casowaHighlight.copyHighlightQuery', message.entryKey);
           return;
         }
 
@@ -858,7 +1334,7 @@ class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscod
           if (!editor) {
             return;
           }
-          await vscode.commands.executeCommand('casowaHighlight.copyAllHighlightedWords');
+          await vscode.commands.executeCommand('casowaHighlight.copyAllHighlightQueries');
           return;
         }
 
@@ -866,21 +1342,59 @@ class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscod
           if (!editor) {
             return;
           }
-          await vscode.commands.executeCommand('casowaHighlight.removeHighlightedWord', message.entryKey);
+          await vscode.commands.executeCommand('casowaHighlight.removeStoredHighlight', message.entryKey);
           return;
         }
 
-        if (message.command === 'removeAllWords') {
-          if (!editor) {
-            return;
-          }
+        if (message.command === 'clearAllHighlights') {
           await vscode.commands.executeCommand('casowaHighlight.clearAllHighlights');
           return;
         }
 
+        if (message.command === 'toggleDisplay') {
+          await vscode.commands.executeCommand('casowaHighlight.toggleDisplay');
+          return;
+        }
+
+        if (message.command === 'addSearchHighlight') {
+          await vscode.commands.executeCommand('casowaHighlight.addSearchHighlight');
+          return;
+        }
+
+        if (message.command === 'saveHighlights') {
+          await vscode.commands.executeCommand('casowaHighlight.saveHighlights');
+          return;
+        }
+
+        if (message.command === 'saveHighlightsToSlot') {
+          await saveHighlightsToStorage(this.getStorageUri(), 'pick');
+          return;
+        }
+
+        if (message.command === 'openHighlightStorageFolder') {
+          await openHighlightStorageFolder(this.getStorageUri());
+          return;
+        }
+
+        if (message.command === 'loadHighlights') {
+          await vscode.commands.executeCommand('casowaHighlight.loadHighlights');
+          return;
+        }
+
+        if (message.command === 'loadLatestHighlights') {
+          const loaded = await loadHighlightsFromStorage(this.getStorageUri(), 'latest');
+          if (!loaded) {
+            return;
+          }
+
+          renderHighlightsForVisibleEditors();
+          this.refresh();
+          return;
+        }
+
         if (message.command === 'setDefaultMode' && message.mode) {
-          inputHighlightDefaults = {
-            ...inputHighlightDefaults,
+          searchHighlightDefaults = {
+            ...searchHighlightDefaults,
             mode: message.mode
           };
           this.refresh();
@@ -888,8 +1402,8 @@ class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscod
         }
 
         if (message.command === 'setDefaultCaseSensitivity' && typeof message.caseSensitive === 'boolean') {
-          inputHighlightDefaults = {
-            ...inputHighlightDefaults,
+          searchHighlightDefaults = {
+            ...searchHighlightDefaults,
             caseSensitive: message.caseSensitive
           };
           this.refresh();
@@ -933,14 +1447,43 @@ class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscod
       return;
     }
 
-    selectHighlightedWord(entry);
+    selectHighlight(entry);
     jumpToNextRange(editor, ranges);
+    this.refresh();
+  }
+
+  private async jumpToEntry(entryKey: string, direction: 'next' | 'previous'): Promise<void> {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      return;
+    }
+
+    const entry = getHighlightEntries().find((item) => getHighlightEntryKey(item) === entryKey);
+    if (!entry) {
+      return;
+    }
+
+    const ranges = findHighlightRanges(editor.document, entry);
+    if (ranges.length === 0) {
+      vscode.window.showInformationMessage('The selected highlighted text was not found.');
+      return;
+    }
+
+    selectHighlight(entry);
+
+    if (direction === 'previous') {
+      jumpToPreviousRange(editor, ranges);
+    } else {
+      jumpToNextRange(editor, ranges);
+    }
+
     this.refresh();
   }
 
   private getHtml(webview: vscode.Webview): string {
     const editor = vscode.window.activeTextEditor;
     const nonce = getNonce();
+    const showPanelJumpButtons = shouldShowPanelJumpButtons();
 
     const controlsMarkup = `
       <div class="input-defaults">
@@ -948,18 +1491,27 @@ class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscod
         <label class="toolbar-field">
           <span>Mode</span>
           <select id="default-mode">
-            <option value="text"${inputHighlightDefaults.mode === 'text' ? ' selected' : ''}>Text</option>
-            <option value="word"${inputHighlightDefaults.mode === 'word' ? ' selected' : ''}>Word</option>
-            <option value="regex"${inputHighlightDefaults.mode === 'regex' ? ' selected' : ''}>Regex</option>
+            <option value="text"${searchHighlightDefaults.mode === 'text' ? ' selected' : ''}>Text</option>
+            <option value="word"${searchHighlightDefaults.mode === 'word' ? ' selected' : ''}>Word</option>
+            <option value="regex"${searchHighlightDefaults.mode === 'regex' ? ' selected' : ''}>Regex</option>
           </select>
         </label>
         <label class="toolbar-field">
           <span>Case</span>
           <select id="default-case">
-            <option value="insensitive"${!inputHighlightDefaults.caseSensitive ? ' selected' : ''}>Insensitive</option>
-            <option value="sensitive"${inputHighlightDefaults.caseSensitive ? ' selected' : ''}>Sensitive</option>
+            <option value="insensitive"${!searchHighlightDefaults.caseSensitive ? ' selected' : ''}>Insensitive</option>
+            <option value="sensitive"${searchHighlightDefaults.caseSensitive ? ' selected' : ''}>Sensitive</option>
           </select>
         </label>
+        <button class="toolbar-button" id="add-search-highlight" type="button">Add Search</button>
+        <button class="toolbar-button" id="clear-all-highlights" type="button">Clear All</button>
+        <label class="toolbar-toggle">
+          <span>Enable:</span>
+          <input id="highlight-display-enabled" type="checkbox"${highlightDisplayEnabled ? ' checked' : ''} />
+        </label>
+        <span class="toolbar-divider" aria-hidden="true"></span>
+        <button class="toolbar-button" id="save-highlights" type="button">Save</button>
+        <button class="toolbar-button" id="load-highlights" type="button">Load</button>
       </div>
     `;
 
@@ -968,7 +1520,7 @@ class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscod
         webview,
         nonce,
         `
-          <div class="panel">
+          <div class="panel${showPanelJumpButtons ? '' : ' hide-jump-buttons'}">
             <div class="toolbar">
               ${controlsMarkup}
             </div>
@@ -979,14 +1531,14 @@ class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscod
     }
 
     const entries = getHighlightEntries();
-    const selectedEntry = getSelectedHighlightedWord();
+    const selectedEntry = getSelectedHighlight();
 
     if (entries.length === 0) {
       return this.renderShell(
         webview,
         nonce,
         `
-          <div class="panel">
+          <div class="panel${showPanelJumpButtons ? '' : ' hide-jump-buttons'}">
             <div class="toolbar">
               ${controlsMarkup}
             </div>
@@ -1004,30 +1556,31 @@ class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscod
         const entryKey = getHighlightEntryKey(entry);
 
         return `
-          <button
-            class="chip${entry.patternIndex >= COLOR_COUNT ? ' outline' : ''}${isSelected ? ' selected' : ''}"
-            data-entry-key="${escapeHtmlAttribute(entryKey)}"
+          <div
+            class="chip-item${entry.patternIndex >= COLOR_COUNT ? ' outline' : ''}${isSelected ? ' selected' : ''}"
             style="--chip-bg:${escapeHtmlAttribute(pattern.backgroundColor)}; --chip-fg:${escapeHtmlAttribute(
               pattern.foregroundColor
             )};"
-            title="${escapeHtmlAttribute(`${entry.query} (${matchCount} matches)`)}"
           >
-            <span class="chip-label">${escapeHtml(entry.query)}</span>
-            <span class="chip-count">${matchCount}</span>
-          </button>
+            <button
+              class="chip${entry.patternIndex >= COLOR_COUNT ? ' outline' : ''}${isSelected ? ' selected' : ''}"
+              data-entry-key="${escapeHtmlAttribute(entryKey)}"
+              title="${escapeHtmlAttribute(`${entry.query} (${matchCount} matches)`)}"
+            >
+              <span class="chip-label">${escapeHtml(entry.query)}</span>
+              <span class="chip-count">${matchCount}</span>
+            </button>
+            <button class="chip-action" data-direction="previous" data-entry-key="${escapeHtmlAttribute(entryKey)}" title="Previous match">↑</button>
+            <button class="chip-action" data-direction="next" data-entry-key="${escapeHtmlAttribute(entryKey)}" title="Next match">↓</button>
+          </div>
         `;
       })
       .join('');
 
-    const selectedMarkup = selectedEntry
-      ? `<button class="next-button" data-command="jumpNext">Next: ${escapeHtml(selectedEntry.query)}</button>`
-      : '<div class="hint">Select a text chip to start jumping through matches.</div>';
-
     const body = `
-      <div class="panel">
+      <div class="panel${showPanelJumpButtons ? '' : ' hide-jump-buttons'}">
         <div class="toolbar">
           ${controlsMarkup}
-          ${selectedMarkup}
         </div>
         <div class="chip-row">${chips}</div>
       </div>
@@ -1072,7 +1625,6 @@ class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscod
       .toolbar {
         display: flex;
         align-items: center;
-        justify-content: space-between;
         flex-wrap: wrap;
         gap: 8px;
       }
@@ -1082,6 +1634,12 @@ class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscod
         align-items: center;
         gap: 8px;
         flex-wrap: wrap;
+      }
+
+      .toolbar-divider {
+        width: 1px;
+        align-self: stretch;
+        background: var(--border);
       }
 
       .toolbar-group-label {
@@ -1098,32 +1656,42 @@ class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscod
         color: var(--muted);
       }
 
+      .toolbar-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .toolbar-toggle input {
+        margin: 0;
+      }
+
       .toolbar-field select {
         border: 1px solid var(--border);
         border-radius: 4px;
         padding: 2px 4px;
+        min-height: 24px;
         background: var(--vscode-dropdown-background);
         color: var(--vscode-dropdown-foreground);
+        box-sizing: border-box;
       }
 
-      .hint {
-        font-size: 12px;
-        color: var(--muted);
-        text-align: right;
-      }
-
-      .next-button {
+      .toolbar-button {
         border: 1px solid var(--border);
-        background: var(--vscode-sideBar-background);
-        color: var(--vscode-foreground);
-        border-radius: 999px;
-        padding: 4px 9px;
+        border-radius: 4px;
+        padding: 2px 6px;
+        min-height: 24px;
+        background: var(--vscode-button-secondaryBackground);
+        color: var(--vscode-button-secondaryForeground);
         cursor: pointer;
-        white-space: nowrap;
+        font-size: 11px;
+        box-sizing: border-box;
       }
 
-      .next-button:hover {
-        border-color: var(--vscode-focusBorder);
+      .toolbar-button:hover {
+        background: var(--vscode-button-secondaryHoverBackground);
       }
 
       .chip-row {
@@ -1133,28 +1701,78 @@ class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscod
         align-items: center;
       }
 
+      .chip-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        border: 1px solid color-mix(in srgb, var(--chip-fg) 20%, transparent);
+        border-radius: 2px;
+        background: var(--chip-bg);
+      }
+
+      .chip-item.outline {
+        border: 2px solid var(--chip-bg);
+        border-radius: 0;
+        background: transparent;
+      }
+
+      .chip-item.selected {
+        outline: 2px solid var(--vscode-focusBorder);
+        outline-offset: 1px;
+      }
+
       .chip {
         display: inline-flex;
         align-items: center;
         gap: 4px;
         min-height: 18px;
         max-width: 100%;
-        border: 1px solid color-mix(in srgb, var(--chip-fg) 20%, transparent);
+        border: 0;
         border-radius: 0;
-        padding: 2px 4px;
-        background: var(--chip-bg);
+        padding: 1px 3px;
+        background: transparent;
         color: var(--chip-fg);
+        font-size: var(--vscode-editor-font-size);
         cursor: pointer;
       }
 
       .chip.outline {
-        border: 2px solid var(--chip-bg);
         background: transparent;
       }
 
       .chip.selected {
-        outline: 2px solid var(--vscode-focusBorder);
-        outline-offset: 1px;
+        outline: 0;
+      }
+
+      .chip-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-left: 1px solid color-mix(in srgb, var(--chip-fg) 18%, transparent);
+        border-radius: 0;
+        min-width: 18px;
+        min-height: 18px;
+        padding: 0 3px;
+        background: color-mix(in srgb, var(--chip-fg) 18%, transparent);
+        color: var(--chip-fg);
+        cursor: pointer;
+        font-size: calc(var(--vscode-editor-font-size) - 1px);
+        line-height: 1;
+        vertical-align: middle;
+      }
+
+      .chip-item:not(.outline) .chip-action:last-child {
+        border-top-right-radius: 2px;
+        border-bottom-right-radius: 2px;
+      }
+
+      .chip-action:hover {
+        background: color-mix(in srgb, var(--chip-fg) 26%, transparent);
+      }
+
+      .panel.hide-jump-buttons .chip-action {
+        display: none;
       }
 
       .chip-label {
@@ -1167,8 +1785,9 @@ class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscod
 
       .chip-count {
         border-radius: 0;
-        padding: 0 4px;
-        font-size: 10px;
+        padding: 0 3px;
+        font-size: calc(var(--vscode-editor-font-size) - 1px);
+        line-height: 1;
         background: color-mix(in srgb, var(--chip-fg) 18%, transparent);
         color: inherit;
       }
@@ -1176,6 +1795,11 @@ class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscod
       .chip.outline .chip-count {
         background: transparent;
         border-left: 1px solid color-mix(in srgb, var(--chip-bg) 45%, transparent);
+      }
+
+      .chip-item.outline .chip-action {
+        border-left-color: color-mix(in srgb, var(--chip-bg) 45%, transparent);
+        background: transparent;
       }
 
       .empty {
@@ -1221,9 +1845,7 @@ class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscod
     <div class="menu" id="context-menu" hidden>
       <button class="menu-item word-only" data-menu-command="copy">Copy</button>
       <button class="menu-item word-only" data-menu-command="remove">Remove highlight</button>
-      <button class="menu-item word-only" data-menu-command="removeAll">Clear all highlights</button>
       <button class="menu-item empty-only" data-menu-command="copyAll">Copy all highlighted words</button>
-      <button class="menu-item empty-only" data-menu-command="removeAll">Clear all highlights</button>
     </div>
     <script nonce="${nonce}">
       const vscode = acquireVsCodeApi();
@@ -1231,6 +1853,11 @@ class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscod
       const panel = document.querySelector('.panel');
       const defaultMode = document.getElementById('default-mode');
       const defaultCase = document.getElementById('default-case');
+      const highlightDisplayEnabled = document.getElementById('highlight-display-enabled');
+      const addSearchHighlightButton = document.getElementById('add-search-highlight');
+      const saveHighlightsButton = document.getElementById('save-highlights');
+      const loadHighlightsButton = document.getElementById('load-highlights');
+      const clearAllHighlightsButton = document.getElementById('clear-all-highlights');
       let menuWord = null;
       let menuMode = 'empty';
 
@@ -1258,8 +1885,17 @@ class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscod
       };
 
       for (const chip of document.querySelectorAll('.chip')) {
-        chip.addEventListener('click', () => {
+        chip.addEventListener('click', (event) => {
           hideMenu();
+          if (event.shiftKey) {
+            vscode.postMessage({
+              command: 'jumpEntry',
+              direction: 'previous',
+              entryKey: chip.dataset.entryKey
+            });
+            return;
+          }
+
           vscode.postMessage({ command: 'selectWord', entryKey: chip.dataset.entryKey });
         });
 
@@ -1267,6 +1903,23 @@ class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscod
           event.preventDefault();
           event.stopPropagation();
           showMenu(event.clientX, event.clientY, 'word', chip.dataset.entryKey);
+        });
+      }
+
+      for (const actionButton of document.querySelectorAll('.chip-action')) {
+        actionButton.addEventListener('click', (event) => {
+          event.stopPropagation();
+          hideMenu();
+          vscode.postMessage({
+            command: 'jumpEntry',
+            direction: actionButton.dataset.direction,
+            entryKey: actionButton.dataset.entryKey
+          });
+        });
+
+        actionButton.addEventListener('contextmenu', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
         });
       }
 
@@ -1293,14 +1946,6 @@ class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscod
         showMenu(event.clientX, event.clientY, 'empty');
       });
 
-      const nextButton = document.querySelector('.next-button');
-      if (nextButton) {
-        nextButton.addEventListener('click', () => {
-          hideMenu();
-          vscode.postMessage({ command: 'jumpNext' });
-        });
-      }
-
       if (defaultMode) {
         defaultMode.addEventListener('change', () => {
           vscode.postMessage({ command: 'setDefaultMode', mode: defaultMode.value });
@@ -1313,6 +1958,74 @@ class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscod
             command: 'setDefaultCaseSensitivity',
             caseSensitive: defaultCase.value === 'sensitive'
           });
+        });
+      }
+
+      if (highlightDisplayEnabled) {
+        highlightDisplayEnabled.addEventListener('change', () => {
+          vscode.postMessage({ command: 'toggleDisplay' });
+        });
+
+        highlightDisplayEnabled.addEventListener('contextmenu', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        });
+      }
+
+      if (addSearchHighlightButton) {
+        addSearchHighlightButton.addEventListener('click', () => {
+          hideMenu();
+          vscode.postMessage({ command: 'addSearchHighlight' });
+        });
+
+        addSearchHighlightButton.addEventListener('contextmenu', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        });
+      }
+
+      if (saveHighlightsButton) {
+        saveHighlightsButton.addEventListener('click', (event) => {
+          hideMenu();
+          if (event.shiftKey) {
+            vscode.postMessage({ command: 'openHighlightStorageFolder' });
+            return;
+          }
+
+          vscode.postMessage({ command: 'saveHighlights' });
+        });
+
+        saveHighlightsButton.addEventListener('contextmenu', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          hideMenu();
+          vscode.postMessage({ command: 'saveHighlightsToSlot' });
+        });
+      }
+
+      if (loadHighlightsButton) {
+        loadHighlightsButton.addEventListener('click', () => {
+          hideMenu();
+          vscode.postMessage({ command: 'loadLatestHighlights' });
+        });
+
+        loadHighlightsButton.addEventListener('contextmenu', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          hideMenu();
+          vscode.postMessage({ command: 'loadHighlights' });
+        });
+      }
+
+      if (clearAllHighlightsButton) {
+        clearAllHighlightsButton.addEventListener('click', () => {
+          hideMenu();
+          vscode.postMessage({ command: 'clearAllHighlights' });
+        });
+
+        clearAllHighlightsButton.addEventListener('contextmenu', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
         });
       }
 
@@ -1330,7 +2043,7 @@ class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscod
           event.stopPropagation();
 
           if (!menuWord) {
-            if (item.dataset.menuCommand !== 'copyAll' && item.dataset.menuCommand !== 'removeAll') {
+            if (item.dataset.menuCommand !== 'copyAll') {
               return;
             }
           }
@@ -1345,10 +2058,6 @@ class HighlightedWordsPanelProvider implements vscode.WebviewViewProvider, vscod
 
           if (item.dataset.menuCommand === 'remove') {
             vscode.postMessage({ command: 'removeWord', entryKey: menuWord });
-          }
-
-          if (item.dataset.menuCommand === 'removeAll') {
-            vscode.postMessage({ command: 'removeAllWords' });
           }
 
           hideMenu();

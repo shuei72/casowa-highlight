@@ -1,9 +1,9 @@
 {
   "name": "casowa-highlight",
   "displayName": "Casowa Highlight",
-  "description": "VS Code extension to highlight text with configurable colors.",
+  "description": "VS Code extension for word and search highlighting. Supports a highlight list view and save/load.",
   "icon": "media/extension-icon.png",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "shuei",
   "author": "shuei",
   "license": "MIT",
@@ -21,23 +21,32 @@
     "highlight",
     "word highlight",
     "text highlight",
+    "regex highlight",
+    "search highlight",
+    "highlight panel",
+    "save highlights",
     "vscode"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "casowaHighlight.highlightWordFromContext",
-        "title": "Add Highlight",
+        "command": "casowaHighlight.addWordHighlight",
+        "title": "Add Word Highlight",
         "category": "Casowa Highlight"
       },
       {
-        "command": "casowaHighlight.highlightInputWord",
-        "title": "Add Highlight...",
+        "command": "casowaHighlight.toggleHighlight",
+        "title": "Toggle Highlight",
         "category": "Casowa Highlight"
       },
       {
-        "command": "casowaHighlight.clearCurrentWordHighlight",
+        "command": "casowaHighlight.addSearchHighlight",
+        "title": "Add Search Highlight",
+        "category": "Casowa Highlight"
+      },
+      {
+        "command": "casowaHighlight.removeHighlight",
         "title": "Remove Highlight",
         "category": "Casowa Highlight"
       },
@@ -47,7 +56,22 @@
         "category": "Casowa Highlight"
       },
       {
-        "command": "casowaHighlight.showHighlightedWords",
+        "command": "casowaHighlight.toggleDisplay",
+        "title": "Toggle Display",
+        "category": "Casowa Highlight"
+      },
+      {
+        "command": "casowaHighlight.saveHighlights",
+        "title": "Save Highlights",
+        "category": "Casowa Highlight"
+      },
+      {
+        "command": "casowaHighlight.loadHighlights",
+        "title": "Load Highlights",
+        "category": "Casowa Highlight"
+      },
+      {
+        "command": "casowaHighlight.selectHighlightedWord",
         "title": "Select Highlighted Word",
         "category": "Casowa Highlight"
       },
@@ -57,8 +81,13 @@
         "category": "Casowa Highlight"
       },
       {
-        "command": "casowaHighlight.jumpToNextSelectedHighlightedWord",
+        "command": "casowaHighlight.nextHighlightedMatch",
         "title": "Next Highlighted Match",
+        "category": "Casowa Highlight"
+      },
+      {
+        "command": "casowaHighlight.previousHighlightedMatch",
+        "title": "Previous Highlighted Match",
         "category": "Casowa Highlight"
       }
     ],
@@ -96,32 +125,28 @@
       ],
       "casowa-highlight-editor-menu": [
         {
-          "command": "casowaHighlight.highlightWordFromContext",
-          "group": "1_add@1"
+          "command": "casowaHighlight.addWordHighlight",
+          "group": "1_highlight@1"
         },
         {
-          "command": "casowaHighlight.highlightInputWord",
-          "group": "1_add@2"
+          "command": "casowaHighlight.addSearchHighlight",
+          "group": "1_highlight@2"
         },
         {
-          "command": "casowaHighlight.clearCurrentWordHighlight",
-          "group": "2_clear@1"
+          "command": "casowaHighlight.removeHighlight",
+          "group": "1_highlight@3"
         },
         {
           "command": "casowaHighlight.clearAllHighlights",
-          "group": "2_clear@2"
+          "group": "1_highlight@4"
         },
         {
-          "command": "casowaHighlight.showHighlightedWords",
-          "group": "3_navigate@1"
-        },
-        {
-          "command": "casowaHighlight.jumpToNextSelectedHighlightedWord",
-          "group": "3_navigate@2"
+          "command": "casowaHighlight.toggleDisplay",
+          "group": "2_other@1"
         },
         {
           "command": "casowaHighlight.showHighlightedPanel",
-          "group": "4_panel@1"
+          "group": "2_other@2"
         }
       ]
     },
@@ -137,6 +162,11 @@
           ],
           "default": "auto",
           "description": "Select whether highlight colors follow the current theme or always use the light or dark color set."
+        },
+        "casowaHighlight.showPanelJumpButtons": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show previous/next jump arrow buttons on highlight chips in the panel."
         },
         "casowaHighlight.light.pattern1.backgroundColor": {
           "type": "string",
