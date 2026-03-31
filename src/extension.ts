@@ -238,7 +238,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
       const entries = getHighlightEntries();
       if (entries.length === 0) {
-        vscode.window.showInformationMessage('There is no highlighted text in the active editor.');
+        vscode.window.showInformationMessage('There are no highlights.');
         return;
       }
 
@@ -1542,7 +1542,7 @@ class HighlightPanelProvider implements vscode.WebviewViewProvider, vscode.Dispo
             <div class="toolbar">
               ${controlsMarkup}
             </div>
-            <div class="empty">No highlighted text in the active editor.</div>
+            <div class="empty">No highlights.</div>
           </div>
         `
       );
