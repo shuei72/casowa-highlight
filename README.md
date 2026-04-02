@@ -1,83 +1,69 @@
 # Casowa Highlight
 
-[English](README.md) | [日本語](README.ja.md)
+Casowa Highlight is a VS Code extension for persistent word, text, and regex highlighting.
+It adds a docked highlight panel, quick match navigation, and save/load slots so you can keep important terms visible while you work.
 
-VS Code extension for word and search highlighting. Supports a highlight list view and save/load.
+## Features
+
+- Highlight the current word, the current selection, or a custom search query
+- Support `Text`, `Word`, and `Regex` search modes with case sensitivity options
+- Browse all active highlights in a docked panel with per-highlight match counts
+- Jump to the next or previous match from the panel or command palette
+- Save highlight sets and load them later
+- Keep up to 16 highlights at once: 8 filled styles and 8 outline styles
+- Run the main actions from a single editor context submenu
+
+## Quick Start
+
+1. Run `Casowa Highlight: Add Word Highlight` to highlight the word at the cursor or the current selection.
+2. Run `Casowa Highlight: Add Search Highlight` when you want text, whole-word, or regex matching.
+3. Open the `Casowa Highlight` panel to review active highlights and jump through matches.
+4. Use `Save` and `Load` in the panel to keep reusable highlight sets.
 
 ## Commands
 
-- `Casowa Highlight: Add Word Highlight`<br>
-  Highlights the word at the cursor or the current selection.
-
-- `Casowa Highlight: Add Search Highlight`<br>
-  Adds a highlight from an input box with search mode (`Text` / `Word` / `Regex`) and case sensitivity options, using the panel values as defaults.
-
-- `Casowa Highlight: Toggle Highlight`<br>
-  Adds a highlight when the current word is not highlighted, or removes the highlight at the cursor when it is.
-
-- `Casowa Highlight: Remove Highlight`<br>
-  Removes the highlight at the cursor position.
-
-- `Casowa Highlight: Clear All Highlights`<br>
-  Clears all highlights.
-
-- `Casowa Highlight: Toggle Display`<br>
-  Toggles highlight visibility.
-
-- `Casowa Highlight: Select Highlighted Word`<br>
-  Selects a highlight from the list.
-
-- `Casowa Highlight: Open Highlighted Panel`<br>
-  Opens the highlight list panel.
-
-- `Casowa Highlight: Next Highlighted Match`<br>
-  Moves to the next match for the selected highlight.
-
-- `Casowa Highlight: Previous Highlighted Match`<br>
-  Moves to the previous match for the selected highlight.
-
-- `Casowa Highlight: Save Highlights`<br>
-  Saves the current highlights.
-
-- `Casowa Highlight: Load Highlights`<br>
-  Loads a saved highlight state.
+- `Casowa Highlight: Add Word Highlight`
+- `Casowa Highlight: Add Search Highlight`
+- `Casowa Highlight: Toggle Highlight`
+- `Casowa Highlight: Remove Highlight`
+- `Casowa Highlight: Clear All Highlights`
+- `Casowa Highlight: Toggle Display`
+- `Casowa Highlight: Select Highlighted Word`
+- `Casowa Highlight: Open Highlighted Panel`
+- `Casowa Highlight: Next Highlighted Match`
+- `Casowa Highlight: Previous Highlighted Match`
+- `Casowa Highlight: Save Highlights`
+- `Casowa Highlight: Load Highlights`
 
 ## Panel
 
-- Shows the list of current highlights. Also shows the match count for each highlight.
-- Click or Shift-click a highlight to move to the next or previous match.
-- Jump to the previous or next match with the arrow buttons next to highlights. Toggle their visibility in settings.
-- Save the current highlight state with the `Save` button. The 5 most recent saved states are kept. Right-click `Save` to choose which of the 5 saved slots to replace.
-- Load the most recently saved highlight state with the `Load` button. Right-click `Load` to choose which saved state to load.
-
-## Other Features
-
-- Run Casowa Highlight actions from a single editor context submenu
-- Supports up to 16 highlights. The first 8 use filled highlights, and the next 8 use outline highlights
+- Shows all current highlights with their match counts in the active editor
+- Click a highlight chip to jump to the next match
+- Shift-click a highlight chip to jump to the previous match
+- Use the arrow buttons on each chip for explicit previous/next navigation
+- Use `Save` to keep the current state; the 5 most recent saved states are retained
+- Right-click `Save` to choose which slot to overwrite
+- Use `Load` to restore the latest saved state
+- Right-click `Load` to choose a saved slot
 
 ## Settings
 
-- `casowaHighlight.colorMode`<br>
-  Switches the highlight color mode between `auto`, `light`, and `dark`. In `auto` mode, highlight colors follow the current VS Code theme.
+- `casowaHighlight.colorMode`
+  Switches highlight colors between `auto`, `light`, and `dark`.
+- `casowaHighlight.showPanelJumpButtons`
+  Shows or hides the previous/next jump buttons in the panel.
+- `casowaHighlight.light.patternN.backgroundColor`
+  Sets the light theme background color for pattern `N`.
+- `casowaHighlight.light.patternN.foregroundColor`
+  Sets the light theme foreground color for pattern `N`.
+- `casowaHighlight.dark.patternN.backgroundColor`
+  Sets the dark theme background color for pattern `N`.
+- `casowaHighlight.dark.patternN.foregroundColor`
+  Sets the dark theme foreground color for pattern `N`.
 
-- `casowaHighlight.showPanelJumpButtons`<br>
-  Shows or hides the previous/next jump arrow buttons on highlight chips in the panel with `true` or `false`. The default is `true`.
+`N` can be `1` to `8`. The same eight configured color pairs are reused for both filled and outline highlights.
 
-- `casowaHighlight.light.patternN.backgroundColor`<br>
-  Sets the background color for light theme highlight pattern `N`.
-
-- `casowaHighlight.light.patternN.foregroundColor`<br>
-  Sets the foreground color for light theme highlight pattern `N`.
-
-- `casowaHighlight.dark.patternN.backgroundColor`<br>
-  Sets the background color for dark theme highlight pattern `N`.
-
-- `casowaHighlight.dark.patternN.foregroundColor`<br>
-  Sets the foreground color for dark theme highlight pattern `N`.
-
-`N` can be `1` to `8`. The configured 8 colors are used for both filled highlights and outline highlights.
-
-## Default settings.json for light themes
+## Default Light Theme Colors
 
 ```json
 {
@@ -100,7 +86,7 @@ VS Code extension for word and search highlighting. Supports a highlight list vi
 }
 ```
 
-## Default settings.json for dark themes
+## Default Dark Theme Colors
 
 ```json
 {
@@ -142,10 +128,6 @@ npx @vscode/vsce package
 ```
 
 Press `F5` in VS Code to launch the extension in Extension Development Host.
-
-## Note
-
-This extension was created with the help of OpenAI Codex (GPT-5 based).
 
 ## License
 

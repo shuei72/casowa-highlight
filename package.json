@@ -1,15 +1,24 @@
 {
   "name": "casowa-highlight",
   "displayName": "Casowa Highlight",
-  "description": "VS Code extension for word and search highlighting. Supports a highlight list view and save/load.",
+  "description": "Highlight words, text, and regex matches in VS Code with a docked panel, quick navigation, and save/load slots.",
   "icon": "media/extension-icon.png",
   "version": "0.2.0",
   "publisher": "shuei",
   "author": "shuei",
   "license": "MIT",
+  "homepage": "https://github.com/shuei72/casowa-highlight#readme",
+  "bugs": {
+    "url": "https://github.com/shuei72/casowa-highlight/issues"
+  },
+  "markdown": "github",
   "repository": {
     "type": "git",
     "url": "https://github.com/shuei72/casowa-highlight.git"
+  },
+  "galleryBanner": {
+    "color": "#1f2937",
+    "theme": "dark"
   },
   "engines": {
     "vscode": "^1.74.0"
