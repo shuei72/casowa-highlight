@@ -33,6 +33,9 @@ import {
 } from './highlights';
 import { loadHighlightsFromStorage, saveHighlightsToStorage } from './storage';
 
+/**
+ * Resolves the storage location used to persist saved highlight sets.
+ */
 function resolveHighlightStorageUri(context: vscode.ExtensionContext): vscode.Uri | undefined {
   return context.storageUri ?? context.globalStorageUri;
 }

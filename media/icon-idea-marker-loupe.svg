@@ -1,0 +1,20 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Casowa Highlight icon idea marker loupe">
+  <defs>
+    <linearGradient id="bg2" x1="20" y1="16" x2="236" y2="238" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#213347"/>
+      <stop offset="1" stop-color="#0A1118"/>
+    </linearGradient>
+    <linearGradient id="body" x1="56" y1="46" x2="162" y2="168" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFE066"/>
+      <stop offset="1" stop-color="#F1B500"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="224" height="224" rx="48" fill="url(#bg2)"/>
+  <path d="M76 46h70l18 18v54l-53 53-53-53V64z" fill="url(#body)" stroke="#FFF5BF" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M94 82h52" stroke="#6C5200" stroke-width="10" stroke-linecap="round"/>
+  <path d="M94 108h36" stroke="#6C5200" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="170" cy="170" r="34" fill="none" stroke="#DCEAF8" stroke-width="12"/>
+  <path d="M194 194l24 24" stroke="#DCEAF8" stroke-width="12" stroke-linecap="round"/>
+  <rect x="142" y="158" width="56" height="12" rx="6" fill="#7CC7FF"/>
+  <rect x="142" y="176" width="40" height="12" rx="6" fill="#FF8CC6"/>
+</svg>

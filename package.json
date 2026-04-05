@@ -1,11 +1,10 @@
 {
-  "name": "casowa-highlight",
+  "name": "rumo-uasowa-highlight",
   "displayName": "Casowa Highlight",
   "description": "Highlight words, text, and regex matches in VS Code with a docked panel, quick navigation, and save/load slots.",
-  "icon": "media/extension-icon.png",
+  "icon": "media/icon.png",
   "version": "0.2.0",
   "publisher": "shuei",
-  "author": "shuei",
   "license": "MIT",
   "homepage": "https://github.com/shuei72/casowa-highlight#readme",
   "bugs": {
@@ -45,13 +44,13 @@
         "category": "Casowa Highlight"
       },
       {
-        "command": "casowaHighlight.toggleHighlight",
-        "title": "Toggle Highlight",
+        "command": "casowaHighlight.addSearchHighlight",
+        "title": "Add Search Highlight",
         "category": "Casowa Highlight"
       },
       {
-        "command": "casowaHighlight.addSearchHighlight",
-        "title": "Add Search Highlight",
+        "command": "casowaHighlight.toggleHighlight",
+        "title": "Toggle Highlight",
         "category": "Casowa Highlight"
       },
       {
@@ -70,23 +69,8 @@
         "category": "Casowa Highlight"
       },
       {
-        "command": "casowaHighlight.saveHighlights",
-        "title": "Save Highlights",
-        "category": "Casowa Highlight"
-      },
-      {
-        "command": "casowaHighlight.loadHighlights",
-        "title": "Load Highlights",
-        "category": "Casowa Highlight"
-      },
-      {
         "command": "casowaHighlight.selectHighlightedWord",
         "title": "Select Highlighted Word",
-        "category": "Casowa Highlight"
-      },
-      {
-        "command": "casowaHighlight.showHighlightedPanel",
-        "title": "Open Highlighted Panel",
         "category": "Casowa Highlight"
       },
       {
@@ -97,6 +81,21 @@
       {
         "command": "casowaHighlight.previousHighlightedMatch",
         "title": "Previous Highlighted Match",
+        "category": "Casowa Highlight"
+      },
+      {
+        "command": "casowaHighlight.showHighlightedPanel",
+        "title": "Open Highlighted Panel",
+        "category": "Casowa Highlight"
+      },
+      {
+        "command": "casowaHighlight.saveHighlights",
+        "title": "Save Highlights",
+        "category": "Casowa Highlight"
+      },
+      {
+        "command": "casowaHighlight.loadHighlights",
+        "title": "Load Highlights",
         "category": "Casowa Highlight"
       }
     ],
@@ -343,9 +342,11 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+    "watch": "tsc -watch -p ./",
+    "package": "npx @vscode/vsce package"
   },
   "devDependencies": {
+    "@vscode/vsce": "^3.7.1",
     "@types/vscode": "^1.74.0",
     "typescript": "^5.4.0"
   }

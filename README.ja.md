@@ -1,86 +1,93 @@
-# Casowa Highlight
+﻿# Casowa Highlight
 
-[English](README.md) | [日本語](README.ja.md)
-
-単語検索や文字列検索をハイライトするVS Code拡張です。ハイライト一覧表示と保存/読込にも対応しています。
+Casowa Highlightは、単語・文字列・正規表現をにマッチするテキストをハイライトできるVS Code拡張機能です。  
+パネルでハイライト一覧を確認でき、ハイライトの前後移動、保存と読み込みをまとめて扱えます。
 
 ## コマンド
+<!-- コマンド行の最後には空白を2ついれること -->
 
-- `Casowa Highlight: Add Word Highlight`<br>
-  カーソル位置の単語または選択中の文字列をハイライトします。
+`Casowa Highlight: Add Word Highlight`  
+カーソル位置の単語、または選択文字列をハイライトに追加します。
 
-- `Casowa Highlight: Add Search Highlight`<br>
-  入力ボックスから検索方法(テキスト/単語/正規表現)と大文字小文字の区別を選んでハイライトします。パネルの値を既定値として使います。
+`Casowa Highlight: Add Search Highlight`  
+任意の文字列や正規表現を入力してハイライトを追加します。
 
-- `Casowa Highlight: Toggle Highlight`<br>
-  カーソル位置にハイライトがなければ単語を追加し、あればその位置のハイライトを解除します。
+`Casowa Highlight: Toggle Highlight`  
+カーソル位置のハイライトを削除し、未登録ならカーソル位置の単語をハイライトに追加します。
 
-- `Casowa Highlight: Remove Highlight`<br>
-  カーソル位置のハイライトを解除します。
+`Casowa Highlight: Remove Highlight`  
+カーソル位置にあるハイライトを削除します。
 
-- `Casowa Highlight: Clear All Highlights`<br>
-  すべてのハイライトを解除します。
+`Casowa Highlight: Clear All Highlights`  
+すべてのハイライトを削除します。
 
-- `Casowa Highlight: Toggle Display`<br>
-  ハイライトの表示/非表示を切り替えます。
+`Casowa Highlight: Toggle Display`  
+ハイライト表示のON/OFFを切り替えます。
 
-- `Casowa Highlight: Select Highlighted Word`<br>
-  一覧からハイライトを選択します。
+`Casowa Highlight: Select Highlighted Word`  
+ハイライト一覧から対象を選び、次の一致箇所へ移動します。
 
-- `Casowa Highlight: Open Highlighted Panel`<br>
-  ハイライト一覧パネルを開きます。
+`Casowa Highlight: Next Highlighted Match`  
+選択中ハイライトの次の一致箇所へ移動します。
 
-- `Casowa Highlight: Next Highlighted Match`<br>
-  選択中のハイライトの次の一致箇所へ移動します。
+`Casowa Highlight: Previous Highlighted Match`  
+選択中ハイライトの前の一致箇所へ移動します。
 
-- `Casowa Highlight: Previous Highlighted Match`<br>
-  選択中のハイライトの前の一致箇所へ移動します。
+`Casowa Highlight: Open Highlighted Panel`  
+ハイライト一覧パネルへフォーカスします。
 
-- `Casowa Highlight: Save Highlights`<br>
-  現在のハイライトを保存します。
+`Casowa Highlight: Save Highlights`  
+現在のハイライト一覧を保存します。
 
-- `Casowa Highlight: Load Highlights`<br>
-  保存済みのハイライト状態を読み込みます。
+`Casowa Highlight: Load Highlights`  
+保存済みのハイライト一覧を読み込みます。
+
+## 特徴
+
+- 単語、通常文字列、正規表現の3種類でハイライトできます。
+- ハイライトセットを保存し、後から復元できます。
 
 ## パネル
 
-- 現在のハイライト一覧を表示します。各ハイライトの一致件数も確認できます。
-- ハイライトをクリック/Shift+クリックすると、前後の一致箇所へ移動できます。
-- ハイライトの横にある矢印ボタンで、前後の一致箇所へ移動できます。設定で表示/非表示を切り替えられます。
-- `Save`ボタンで現在のハイライト状態を保存できます。最新5件分を保持します。`Save`を右クリックすると5件の保存先から選べます。
-- `Load`ボタンで最新の保存済みハイライト状態を読み込めます。`Load`を右クリックすると読込元を選べます。
-
-## その他の特徴
-
-- エディタの右クリックメニューから`Casowa Highlight`の各操作を実行可能
-- 16個までハイライトできます。最初の8個は塗りつぶし表示、次の8個は枠表示になります
+- パネルに`Casowa Highlight`ビューを追加します。
+- パネルにはハイライト語句、件数、前後移動ボタンを表示します。
+- パネルから保存、読み込み、対象ハイライトの選択ができます。
 
 ## 設定
 
-- `casowaHighlight.colorMode`<br>
-  ハイライトの配色モードを`auto`/`light`/`dark`で切り替えます。`auto`モードでは現在のVS Codeテーマに追従します。
+`casowaHighlight.colorMode`  
+ハイライト配色の切り替え方法を設定します。  
 
-- `casowaHighlight.showPanelJumpButtons`<br>
-  パネルのハイライトチップにある前後移動用の矢印ボタンの表示/非表示を`true`/`false`で切り替えます。既定値は`true`です。
+| 設定値 | 説明 |
+| --- | --- |
+| `auto` | 現在のテーマ配色 |
+| `light` | 常にlight配色 |
+| `dark` | 常にdark配色 |
 
-- `casowaHighlight.light.patternN.backgroundColor`<br>
-  lightテーマのハイライトパターン`N`の背景色を設定します。
+デフォルト値: `auto`
 
-- `casowaHighlight.light.patternN.foregroundColor`<br>
-  lightテーマのハイライトパターン`N`の文字色を設定します。
+`casowaHighlight.showPanelJumpButtons`  
+パネル上のハイライトに前後移動ボタンを表示するかどうかを切り替え設定  
+デフォルト値: `true`
 
-- `casowaHighlight.dark.patternN.backgroundColor`<br>
-  darkテーマのハイライトパターン`N`の背景色を設定します。
+`casowaHighlight.light.patternN.backgroundColor`  
+lightテーマ時の1から8番目までのハイライト背景色
 
-- `casowaHighlight.dark.patternN.foregroundColor`<br>
-  darkテーマのハイライトパターン`N`の文字色を設定します。
+`casowaHighlight.light.pattern1.foregroundColor`  
+lightテーマ時の1から8番までのハイライト文字色
 
-`N`は`1`から`8`です。設定した8色は、塗りつぶし表示と枠表示の両方で使います。
+`casowaHighlight.dark.pattern1.backgroundColor`  
+darkテーマ時の1から8番までのハイライト背景色
 
-## デフォルト値: lightテーマ
+`casowaHighlight.dark.pattern1.foregroundColor`  
+darkテーマ時の1から8番までのハイライト文字色
+
+## デフォルト値
 
 ```json
 {
+  "casowaHighlight.colorMode": "auto",
+  "casowaHighlight.showPanelJumpButtons": true,
   "casowaHighlight.light.pattern1.backgroundColor": "#FFE066",
   "casowaHighlight.light.pattern1.foregroundColor": "#2B2200",
   "casowaHighlight.light.pattern2.backgroundColor": "#FFB86B",
@@ -96,14 +103,7 @@
   "casowaHighlight.light.pattern7.backgroundColor": "#C7A6FF",
   "casowaHighlight.light.pattern7.foregroundColor": "#261A52",
   "casowaHighlight.light.pattern8.backgroundColor": "#FF8CC6",
-  "casowaHighlight.light.pattern8.foregroundColor": "#4A1830"
-}
-```
-
-## デフォルト値: darkテーマ
-
-```json
-{
+  "casowaHighlight.light.pattern8.foregroundColor": "#4A1830",
   "casowaHighlight.dark.pattern1.backgroundColor": "#8A6A00",
   "casowaHighlight.dark.pattern1.foregroundColor": "#FFF8D6",
   "casowaHighlight.dark.pattern2.backgroundColor": "#A04F00",
@@ -123,30 +123,28 @@
 }
 ```
 
-## 開発
+## 開発用
 
 ### PowerShell
 
 ```powershell
 npm.cmd install
 npm.cmd run compile
-npx.cmd @vscode/vsce package
+npm.cmd run package
 ```
 
-### コマンド プロンプト
+### Command Prompt
 
 ```cmd
 npm install
 npm run compile
-npx @vscode/vsce package
+npm run package
 ```
 
-VS Codeで`F5`を押すと、Extension Development Hostで拡張を起動できます。
+## その他
 
-## 補足
-
-この拡張はOpenAI Codex (GPT-5 based)の支援を受けて作成しました。
+- この拡張機能の作成にはCodexを利用しています。
 
 ## ライセンス
 
-MIT
+MIT License
