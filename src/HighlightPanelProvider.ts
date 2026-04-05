@@ -1,4 +1,4 @@
-// Webview provider for the Highlight panel UI and its message handling.
+﻿// Webview provider for the Highlight panel UI and its message handling.
 import * as vscode from 'vscode';
 
 import {
@@ -67,7 +67,7 @@ export class HighlightPanelProvider implements vscode.WebviewViewProvider, vscod
           if (!editor) {
             return;
           }
-          await vscode.commands.executeCommand('casowaHighlight.copyHighlightQuery', message.entryKey);
+          await vscode.commands.executeCommand('kasowaHighlight.copyHighlightQuery', message.entryKey);
           return;
         }
 
@@ -75,7 +75,7 @@ export class HighlightPanelProvider implements vscode.WebviewViewProvider, vscod
           if (!editor) {
             return;
           }
-          await vscode.commands.executeCommand('casowaHighlight.copyAllHighlightQueries');
+          await vscode.commands.executeCommand('kasowaHighlight.copyAllHighlightQueries');
           return;
         }
 
@@ -83,27 +83,27 @@ export class HighlightPanelProvider implements vscode.WebviewViewProvider, vscod
           if (!editor) {
             return;
           }
-          await vscode.commands.executeCommand('casowaHighlight.removeStoredHighlight', message.entryKey);
+          await vscode.commands.executeCommand('kasowaHighlight.removeStoredHighlight', message.entryKey);
           return;
         }
 
         if (message.command === 'clearAllHighlights') {
-          await vscode.commands.executeCommand('casowaHighlight.clearAllHighlights');
+          await vscode.commands.executeCommand('kasowaHighlight.clearAllHighlights');
           return;
         }
 
         if (message.command === 'toggleDisplay') {
-          await vscode.commands.executeCommand('casowaHighlight.toggleDisplay');
+          await vscode.commands.executeCommand('kasowaHighlight.toggleDisplay');
           return;
         }
 
         if (message.command === 'addSearchHighlight') {
-          await vscode.commands.executeCommand('casowaHighlight.addSearchHighlight');
+          await vscode.commands.executeCommand('kasowaHighlight.addSearchHighlight');
           return;
         }
 
         if (message.command === 'saveHighlights') {
-          await vscode.commands.executeCommand('casowaHighlight.saveHighlights');
+          await vscode.commands.executeCommand('kasowaHighlight.saveHighlights');
           return;
         }
 
@@ -118,7 +118,7 @@ export class HighlightPanelProvider implements vscode.WebviewViewProvider, vscod
         }
 
         if (message.command === 'loadHighlights') {
-          await vscode.commands.executeCommand('casowaHighlight.loadHighlights');
+          await vscode.commands.executeCommand('kasowaHighlight.loadHighlights');
           return;
         }
 
@@ -844,3 +844,4 @@ function escapeHtml(value: string): string {
 function escapeHtmlAttribute(value: string): string {
   return escapeHtml(value);
 }
+

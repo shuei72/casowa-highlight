@@ -1,4 +1,4 @@
-// Core highlight state and behavior: entries, search/match logic, navigation, and editor decorations.
+﻿// Core highlight state and behavior: entries, search/match logic, navigation, and editor decorations.
 import * as vscode from 'vscode';
 
 export const PATTERN_COUNT = 16;
@@ -202,7 +202,7 @@ export function getHighlightEntryKey(entry: Omit<HighlightEntry, 'patternIndex'>
 // Builds the quick-pick summary text for a highlight entry.
 export function getHighlightEntryDescription(entry: HighlightEntry, matchCount: number): string {
   const parts = [entry.mode === 'text' ? 'text' : entry.mode, entry.caseSensitive ? 'Aa' : 'aA', `${matchCount} matches`];
-  return parts.join(' · ');
+  return parts.join(' ﾂｷ ');
 }
 
 // Prompts the user for the search mode used to create a highlight.
@@ -631,7 +631,7 @@ function createDecorationTypes(): vscode.TextEditorDecorationType[] {
 
 // Reads whether the panel should show previous/next jump buttons.
 export function shouldShowPanelJumpButtons(): boolean {
-  return vscode.workspace.getConfiguration('casowaHighlight').get<boolean>('showPanelJumpButtons', true);
+  return vscode.workspace.getConfiguration('kasowaHighlight').get<boolean>('showPanelJumpButtons', true);
 }
 
 function getDecorationOptions(
@@ -655,7 +655,7 @@ function getDecorationOptions(
 
 // Resolves the configured colors for one highlight pattern slot.
 export function getPatternDefinition(index: number): PatternDefinition {
-  const configuration = vscode.workspace.getConfiguration('casowaHighlight');
+  const configuration = vscode.workspace.getConfiguration('kasowaHighlight');
   const colorMode = configuration.get<'auto' | 'light' | 'dark'>('colorMode', 'auto');
   const paletteMode = resolvePaletteMode(colorMode);
   const colorIndex = ((index - 1) % COLOR_COUNT) + 1;
@@ -702,3 +702,4 @@ function escapeXml(value: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 }
+
