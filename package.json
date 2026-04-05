@@ -1,8 +1,8 @@
-﻿{
+{
   "name": "kasowa-highlight",
   "displayName": "Kasowa Highlight",
   "description": "Highlight words, text, and regex matches in VS Code with a docked panel, quick navigation, and save/load slots.",
-  "icon": "media/icon.png",
+  "icon": "media/icon-highlight-stripes.png",
   "version": "0.2.0",
   "publisher": "shuei",
   "license": "MIT",
@@ -105,7 +105,7 @@
           "type": "webview",
           "id": "kasowa-highlighted-words-panel",
           "name": "Highlighted",
-          "icon": "media/highlighted-view.svg"
+          "icon": "media/panel-icon.svg"
         }
       ]
     },
@@ -114,7 +114,7 @@
         {
           "id": "kasowa-highlight-panel",
           "title": "Kasowa Highlight",
-          "icon": "media/highlighted-view.svg"
+          "icon": "media/panel-icon.svg"
         }
       ]
     },
@@ -351,4 +351,3 @@
     "typescript": "^5.4.0"
   }
 }
-
