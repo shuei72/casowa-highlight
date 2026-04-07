@@ -2,7 +2,7 @@
   "name": "kasowa-highlight",
   "displayName": "Kasowa Highlight",
   "description": "Highlight words, text, and regex matches in VS Code with a docked panel, quick navigation, and save/load slots.",
-  "icon": "media/icon-highlight-stripes.png",
+  "icon": "media/icon.png",
   "version": "0.2.0",
   "publisher": "shuei",
   "license": "MIT",
@@ -34,6 +34,9 @@
     "highlight panel",
     "save highlights",
     "vscode"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
