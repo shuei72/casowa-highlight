@@ -1,4 +1,4 @@
-﻿// Extension entrypoint: wires VS Code commands/events to highlight, storage, and panel modules.
+// Extension entrypoint: wires VS Code commands/events to highlight, storage, and panel modules.
 import * as vscode from 'vscode';
 
 import { HighlightPanelProvider } from './HighlightPanelProvider';
@@ -250,12 +250,13 @@ export function activate(context: vscode.ExtensionContext): void {
         return;
       }
 
-      const selectedEntry = getSelectedHighlight();
+      const selectedEntry = getSelectedHighlight() ?? getHighlightEntryAtPosition(editor.document, editor.selection.active);
       if (!selectedEntry) {
         vscode.window.showInformationMessage('No highlighted text is currently selected.');
         return;
       }
 
+      selectHighlight(selectedEntry);
       const ranges = findHighlightRanges(editor.document, selectedEntry);
       if (ranges.length === 0) {
         vscode.window.showInformationMessage('The selected highlighted text was not found.');
@@ -271,12 +272,13 @@ export function activate(context: vscode.ExtensionContext): void {
         return;
       }
 
-      const selectedEntry = getSelectedHighlight();
+      const selectedEntry = getSelectedHighlight() ?? getHighlightEntryAtPosition(editor.document, editor.selection.active);
       if (!selectedEntry) {
         vscode.window.showInformationMessage('No highlighted text is currently selected.');
         return;
       }
 
+      selectHighlight(selectedEntry);
       const ranges = findHighlightRanges(editor.document, selectedEntry);
       if (ranges.length === 0) {
         vscode.window.showInformationMessage('The selected highlighted text was not found.');
@@ -367,4 +369,3 @@ export function activate(context: vscode.ExtensionContext): void {
 export function deactivate(): void {
   disposeDecorations();
 }
-

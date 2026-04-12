@@ -33,6 +33,8 @@
     "search highlight",
     "highlight panel",
     "save highlights",
+    "regex",
+    "panel",
     "vscode"
   ],
   "activationEvents": [
