@@ -1,9 +1,13 @@
-﻿# Kasowa Highlight
+﻿<p align="center">
+  <img src="media/icon.png" alt="Kasowa Highlight icon" width="128" />
+</p>
+
+# Kasowa Highlight
 
 Kasowa Highlight is a VS Code extension for highlighting words, plain text, and regular-expression matches.  
 The panel shows the current highlight list and provides navigation, save, and load actions.
 
-## Commands
+## ✨ Commands
 
 `Kasowa Highlight: Add Word Highlight`  
 Adds a highlight for the word at the current cursor position or the current selection.
@@ -41,18 +45,18 @@ Saves the current highlight list.
 `Kasowa Highlight: Load Highlights`  
 Loads a previously saved highlight list.
 
-## Features
+## 🔎 Features
 
 - Supports word, plain text, and regular expression highlights.
 - Supports saving and restoring highlight sets.
 
-## Panel
+## 🗂️ Panel
 
 - Adds a `Kasowa Highlight` view to the panel.
 - Shows highlighted text, match counts, and previous/next buttons.
 - Supports save, load, and highlight selection from the panel.
 
-## Settings
+## ⚙️ Settings
 
 `kasowaHighlight.colorMode`  
 Sets how highlight colors are selected.
