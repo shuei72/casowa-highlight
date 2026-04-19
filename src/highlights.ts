@@ -35,6 +35,7 @@ export type InputHighlightDefaults = {
 };
 
 const highlightEntriesStore: HighlightEntry[] = [];
+const highlightTouchHistoryStore: string[] = [];
 let reuseStartIndexStore = 0;
 let selectedHighlightEntryKeyStore: string | undefined;
 let highlightDisplayEnabled = true;
@@ -92,6 +93,7 @@ export function addHighlight(entryInput: Omit<HighlightEntry, 'patternIndex'> | 
   const existingEntry = highlightEntriesStore.find((entry) => getHighlightEntryKey(entry) === getHighlightEntryKey(normalizedEntry));
 
   if (existingEntry) {
+    touchHighlightEntry(existingEntry);
     return;
   }
 
@@ -121,6 +123,10 @@ export function addHighlight(entryInput: Omit<HighlightEntry, 'patternIndex'> | 
   });
 
   highlightEntriesStore.sort((left, right) => left.patternIndex - right.patternIndex);
+  touchHighlightEntry({
+    ...normalizedEntry,
+    patternIndex
+  });
 }
 
 // Removes one highlight entry and clears selection if that entry was selected.
@@ -135,15 +141,14 @@ export function removeHighlight(entryToRemove: HighlightEntry): void {
   highlightEntriesStore.length = 0;
   highlightEntriesStore.push(...nextEntries);
 
-  const selectedEntry = getSelectedHighlight();
-  if (selectedEntry && getHighlightEntryKey(selectedEntry) === entryKey) {
-    selectedHighlightEntryKeyStore = undefined;
-  }
+  removeHighlightKeyFromHistory(entryKey);
+  refreshSelectedHighlightFromHistory();
 }
 
 // Clears all highlights and resets related in-memory state.
 export function clearAllHighlights(): void {
   highlightEntriesStore.length = 0;
+  highlightTouchHistoryStore.length = 0;
   reuseStartIndexStore = 0;
   selectedHighlightEntryKeyStore = undefined;
 }
@@ -174,6 +179,10 @@ export function replaceHighlights(entries: Array<HighlightEntry | Omit<Highlight
         patternIndex: requestedPatternIndex
       });
       assignedPatternIndexes.add(requestedPatternIndex);
+      touchHighlightEntry({
+        ...normalizedEntry,
+        patternIndex: requestedPatternIndex
+      });
       continue;
     }
 
@@ -185,6 +194,7 @@ export function replaceHighlights(entries: Array<HighlightEntry | Omit<Highlight
   }
 
   highlightEntriesStore.sort((left, right) => left.patternIndex - right.patternIndex);
+  refreshSelectedHighlightFromHistory();
 }
 
 function normalizeHighlightEntry(entry: Omit<HighlightEntry, 'patternIndex'> | HighlightEntry): Omit<HighlightEntry, 'patternIndex'> {
@@ -281,17 +291,52 @@ async function showSingleSelectQuickPick<T extends vscode.QuickPickItem>(
 }
 
 export function getSelectedHighlight(): HighlightEntry | undefined {
-  const entryKey = selectedHighlightEntryKeyStore;
-  if (!entryKey) {
+  return getHighlightEntryByKey(selectedHighlightEntryKeyStore);
+}
+
+export function getSelectedHighlightMatchPosition(
+  document: vscode.TextDocument,
+  selection: vscode.Selection,
+  entry: HighlightEntry
+): { index: number; total: number } | undefined {
+  const ranges = findHighlightRanges(document, entry);
+  if (ranges.length === 0) {
     return undefined;
   }
 
-  return getHighlightEntries().find((entry) => getHighlightEntryKey(entry) === entryKey);
+  const exactIndex = getExactRangeIndex(selection, ranges);
+  if (exactIndex >= 0) {
+    return {
+      index: exactIndex + 1,
+      total: ranges.length
+    };
+  }
+
+  const containingIndex = getContainingRangeIndex(selection, ranges);
+  if (containingIndex >= 0) {
+    return {
+      index: containingIndex + 1,
+      total: ranges.length
+    };
+  }
+
+  const nextIndex = ranges.findIndex((range) => range.start.isAfter(selection.active));
+  if (nextIndex >= 0) {
+    return {
+      index: nextIndex + 1,
+      total: ranges.length
+    };
+  }
+
+  return {
+    index: 1,
+    total: ranges.length
+  };
 }
 
 // Marks a highlight as the current navigation target.
 export function selectHighlight(entry: HighlightEntry): void {
-  selectedHighlightEntryKeyStore = getHighlightEntryKey(entry);
+  touchHighlightEntry(entry);
 }
 
 // Re-renders highlight decorations for one document across visible editors.
@@ -627,6 +672,44 @@ function createDecorationTypes(): vscode.TextEditorDecorationType[] {
   }
 
   return nextDecorationTypes;
+}
+
+function touchHighlightEntry(entry: HighlightEntry): void {
+  const entryKey = getHighlightEntryKey(entry);
+  const existingIndex = highlightTouchHistoryStore.indexOf(entryKey);
+  if (existingIndex >= 0) {
+    highlightTouchHistoryStore.splice(existingIndex, 1);
+  }
+
+  highlightTouchHistoryStore.push(entryKey);
+  selectedHighlightEntryKeyStore = entryKey;
+}
+
+function removeHighlightKeyFromHistory(entryKey: string): void {
+  const entryIndex = highlightTouchHistoryStore.indexOf(entryKey);
+  if (entryIndex >= 0) {
+    highlightTouchHistoryStore.splice(entryIndex, 1);
+  }
+}
+
+function refreshSelectedHighlightFromHistory(): void {
+  for (let index = highlightTouchHistoryStore.length - 1; index >= 0; index -= 1) {
+    const entry = getHighlightEntryByKey(highlightTouchHistoryStore[index]);
+    if (entry) {
+      selectedHighlightEntryKeyStore = highlightTouchHistoryStore[index];
+      return;
+    }
+  }
+
+  selectedHighlightEntryKeyStore = undefined;
+}
+
+function getHighlightEntryByKey(entryKey: string | undefined): HighlightEntry | undefined {
+  if (!entryKey) {
+    return undefined;
+  }
+
+  return highlightEntriesStore.find((entry) => getHighlightEntryKey(entry) === entryKey);
 }
 
 // Reads whether the panel should show previous/next jump buttons.

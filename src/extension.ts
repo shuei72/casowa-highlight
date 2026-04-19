@@ -13,10 +13,11 @@ import {
   findHighlightRanges,
   getHighlightEntries,
   getHighlightEntryAtPosition,
-  getHighlightEntryDescription,
   getHighlightEntryKey,
+  getHighlightEntryDescription,
   getPatternDefinition,
   getSelectedHighlight,
+  getSelectedHighlightMatchPosition,
   getWordAtCursor,
   initializeDecorations,
   jumpToNextRange,
@@ -46,10 +47,39 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const getStorageUri = (): vscode.Uri | undefined => resolveHighlightStorageUri(context);
   const highlightPanelProvider = new HighlightPanelProvider({ getStorageUri });
+  const highlightStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+
+  context.subscriptions.push(highlightStatusBarItem);
+
+  const updateHighlightStatusBar = (): void => {
+    const editor = vscode.window.activeTextEditor;
+    const currentEntry = getSelectedHighlight();
+    const position = editor && currentEntry
+      ? getSelectedHighlightMatchPosition(editor.document, editor.selection, currentEntry)
+      : undefined;
+
+    if (!currentEntry || !position) {
+      highlightStatusBarItem.hide();
+      return;
+    }
+
+    highlightStatusBarItem.text = `$(highlight) ${currentEntry.query} (${position.index}/${position.total})`;
+    highlightStatusBarItem.tooltip = 'Open the highlighted words panel';
+    highlightStatusBarItem.command = 'kasowaHighlight.showHighlightedPanel';
+    highlightStatusBarItem.show();
+  };
+
+  const refreshHighlightViews = (): void => {
+    renderHighlightsForVisibleEditors();
+    highlightPanelProvider.refresh();
+    updateHighlightStatusBar();
+  };
+
   const refreshDecorations = (): void => {
     recreateDecorations();
     renderHighlightsForVisibleEditors();
     highlightPanelProvider.refresh();
+    updateHighlightStatusBar();
   };
 
   context.subscriptions.push(
@@ -76,8 +106,7 @@ export function activate(context: vscode.ExtensionContext): void {
         mode: selectedText ? 'text' : 'word',
         query
       });
-      renderHighlightsForVisibleEditors();
-      highlightPanelProvider.refresh();
+      refreshHighlightViews();
     }),
     vscode.commands.registerCommand('kasowaHighlight.toggleHighlight', async () => {
       const editor = vscode.window.activeTextEditor;
@@ -103,8 +132,7 @@ export function activate(context: vscode.ExtensionContext): void {
         });
       }
 
-      renderHighlightsForVisibleEditors();
-      highlightPanelProvider.refresh();
+      refreshHighlightViews();
     }),
     vscode.commands.registerCommand('kasowaHighlight.addSearchHighlight', async () => {
       const editor = vscode.window.activeTextEditor;
@@ -152,8 +180,7 @@ export function activate(context: vscode.ExtensionContext): void {
       });
 
       addHighlight(entry);
-      renderHighlightsForVisibleEditors();
-      highlightPanelProvider.refresh();
+      refreshHighlightViews();
     }),
     vscode.commands.registerCommand('kasowaHighlight.removeHighlight', async () => {
       const editor = vscode.window.activeTextEditor;
@@ -168,8 +195,7 @@ export function activate(context: vscode.ExtensionContext): void {
       }
 
       removeHighlight(entry);
-      renderHighlightsForVisibleEditors();
-      highlightPanelProvider.refresh();
+      refreshHighlightViews();
     }),
     vscode.commands.registerCommand('kasowaHighlight.clearAllHighlights', async () => {
       const editor = vscode.window.activeTextEditor;
@@ -178,13 +204,11 @@ export function activate(context: vscode.ExtensionContext): void {
       }
 
       clearAllHighlights();
-      renderHighlightsForVisibleEditors();
-      highlightPanelProvider.refresh();
+      refreshHighlightViews();
     }),
     vscode.commands.registerCommand('kasowaHighlight.toggleDisplay', async () => {
       toggleHighlightDisplay();
-      renderHighlightsForVisibleEditors();
-      highlightPanelProvider.refresh();
+      refreshHighlightViews();
     }),
     vscode.commands.registerCommand('kasowaHighlight.saveHighlights', async () => {
       await saveHighlightsToStorage(getStorageUri());
@@ -195,8 +219,7 @@ export function activate(context: vscode.ExtensionContext): void {
         return;
       }
 
-      renderHighlightsForVisibleEditors();
-      highlightPanelProvider.refresh();
+      refreshHighlightViews();
     }),
     vscode.commands.registerCommand('kasowaHighlight.selectHighlightedWord', async () => {
       const editor = vscode.window.activeTextEditor;
@@ -239,7 +262,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
       selectHighlight(selectedItem.entry);
       jumpToNextRange(editor, ranges);
-      highlightPanelProvider.refresh();
+      refreshHighlightViews();
     }),
     vscode.commands.registerCommand('kasowaHighlight.showHighlightedPanel', async () => {
       await vscode.commands.executeCommand('kasowa-highlighted-words-panel.focus');
@@ -264,7 +287,7 @@ export function activate(context: vscode.ExtensionContext): void {
       }
 
       jumpToNextRange(editor, ranges);
-      highlightPanelProvider.refresh();
+      refreshHighlightViews();
     }),
     vscode.commands.registerCommand('kasowaHighlight.previousHighlightedMatch', async () => {
       const editor = vscode.window.activeTextEditor;
@@ -286,7 +309,7 @@ export function activate(context: vscode.ExtensionContext): void {
       }
 
       jumpToPreviousRange(editor, ranges);
-      highlightPanelProvider.refresh();
+      refreshHighlightViews();
     }),
     vscode.commands.registerCommand('kasowaHighlight.copyHighlightQuery', async (entryKey: string) => {
       const editor = vscode.window.activeTextEditor;
@@ -326,13 +349,13 @@ export function activate(context: vscode.ExtensionContext): void {
       }
 
       removeHighlight(entry);
-      renderHighlightsForVisibleEditors();
-      highlightPanelProvider.refresh();
+      refreshHighlightViews();
     }),
     vscode.workspace.onDidChangeTextDocument((event) => {
       if (getHighlightEntries().length > 0) {
         renderHighlightsForDocument(event.document);
         highlightPanelProvider.refresh();
+        updateHighlightStatusBar();
       }
     }),
     vscode.window.onDidChangeVisibleTextEditors((editors) => {
@@ -341,9 +364,16 @@ export function activate(context: vscode.ExtensionContext): void {
       }
 
       highlightPanelProvider.refresh();
+      updateHighlightStatusBar();
     }),
     vscode.window.onDidChangeActiveTextEditor(() => {
       highlightPanelProvider.refresh();
+      updateHighlightStatusBar();
+    }),
+    vscode.window.onDidChangeTextEditorSelection((event) => {
+      if (event.textEditor === vscode.window.activeTextEditor) {
+        updateHighlightStatusBar();
+      }
     }),
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (!event.affectsConfiguration('kasowaHighlight')) {
@@ -363,6 +393,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   renderHighlightsForVisibleEditors();
+  updateHighlightStatusBar();
 }
 
 // Releases editor decoration resources when the extension is deactivated.
