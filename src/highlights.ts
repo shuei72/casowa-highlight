@@ -43,25 +43,31 @@ let searchHighlightDefaults: InputHighlightDefaults = {
   caseSensitive: false,
   mode: 'text'
 };
-let decorationTypes: vscode.TextEditorDecorationType[] = [];
+type DecorationSet = {
+  active: vscode.TextEditorDecorationType;
+  normal: vscode.TextEditorDecorationType;
+};
+
+let decorationTypes: DecorationSet[] = [];
 
 // Creates the initial decoration types used to render highlights in visible editors.
 export function initializeDecorations(): vscode.TextEditorDecorationType[] {
   decorationTypes = createDecorationTypes();
-  return decorationTypes;
+  return decorationTypes.flatMap((set) => [set.normal, set.active]);
 }
 
 // Rebuilds decoration types after theme or configuration changes.
 export function recreateDecorations(): vscode.TextEditorDecorationType[] {
   disposeDecorations();
   decorationTypes = createDecorationTypes();
-  return decorationTypes;
+  return decorationTypes.flatMap((set) => [set.normal, set.active]);
 }
 
 // Disposes all decoration types currently owned by the highlight module.
 export function disposeDecorations(): void {
-  for (const decorationType of decorationTypes) {
-    decorationType.dispose();
+  for (const decorationTypeSet of decorationTypes) {
+    decorationTypeSet.normal.dispose();
+    decorationTypeSet.active.dispose();
   }
 
   decorationTypes = [];
@@ -294,6 +300,11 @@ export function getSelectedHighlight(): HighlightEntry | undefined {
   return getHighlightEntryByKey(selectedHighlightEntryKeyStore);
 }
 
+// Returns the highlight entry that most likely matches the current selection.
+export function getHighlightEntryAtSelection(document: vscode.TextDocument, selection: vscode.Selection): HighlightEntry | undefined {
+  return getHighlightEntryAtPosition(document, selection.anchor) ?? getHighlightEntryAtPosition(document, selection.active);
+}
+
 export function getSelectedHighlightMatchPosition(
   document: vscode.TextDocument,
   selection: vscode.Selection,
@@ -343,6 +354,8 @@ export function selectHighlight(entry: HighlightEntry): void {
 export function renderHighlightsForDocument(document: vscode.TextDocument): void {
   const entries = getHighlightEntries();
   const rangesByPattern = highlightDisplayEnabled ? getVisibleRangesByPattern(document, entries) : new Map<number, vscode.Range[]>();
+  const selectedHighlight = getSelectedHighlight();
+  const selectedHighlightEntryKey = selectedHighlight ? getHighlightEntryKey(selectedHighlight) : undefined;
 
   for (const editor of vscode.window.visibleTextEditors) {
     if (editor.document !== document) {
@@ -350,8 +363,11 @@ export function renderHighlightsForDocument(document: vscode.TextDocument): void
     }
 
     for (let index = 0; index < PATTERN_COUNT; index += 1) {
-      const decorationType = decorationTypes[index];
-      if (decorationType) {
+      const decorationTypeSet = decorationTypes[index];
+      if (decorationTypeSet) {
+        const entry = entries.find((item) => item.patternIndex === index);
+        const isActiveHighlight = entry ? getHighlightEntryKey(entry) === selectedHighlightEntryKey : false;
+        const decorationType = isActiveHighlight ? decorationTypeSet.active : decorationTypeSet.normal;
         editor.setDecorations(decorationType, rangesByPattern.get(index) ?? []);
       }
     }
@@ -661,14 +677,17 @@ function isWordBoundary(character: string | undefined): boolean {
   return !/[\p{L}\p{N}_]/u.test(character);
 }
 
-function createDecorationTypes(): vscode.TextEditorDecorationType[] {
-  const nextDecorationTypes: vscode.TextEditorDecorationType[] = [];
+function createDecorationTypes(): DecorationSet[] {
+  const nextDecorationTypes: DecorationSet[] = [];
 
   for (let index = 1; index <= PATTERN_COUNT; index += 1) {
     const definition = getPatternDefinition(index);
     const isOutlinePattern = index > PATTERN_COUNT / 2;
 
-    nextDecorationTypes.push(vscode.window.createTextEditorDecorationType(getDecorationOptions(definition, isOutlinePattern)));
+    nextDecorationTypes.push({
+      normal: vscode.window.createTextEditorDecorationType(getDecorationOptions(definition, isOutlinePattern, false)),
+      active: vscode.window.createTextEditorDecorationType(getDecorationOptions(definition, isOutlinePattern, true))
+    });
   }
 
   return nextDecorationTypes;
@@ -719,20 +738,25 @@ export function shouldShowPanelJumpButtons(): boolean {
 
 function getDecorationOptions(
   definition: PatternDefinition,
-  isOutlinePattern: boolean
+  isOutlinePattern: boolean,
+  isActiveHighlight: boolean
 ): vscode.DecorationRenderOptions {
   if (isOutlinePattern) {
     return {
       color: definition.foregroundColor,
       border: `2px solid ${definition.backgroundColor}`,
-      borderRadius: '0'
+      borderRadius: '0',
+      overviewRulerColor: definition.backgroundColor,
+      overviewRulerLane: isActiveHighlight ? vscode.OverviewRulerLane.Full : vscode.OverviewRulerLane.Right
     };
   }
 
   return {
     backgroundColor: definition.backgroundColor,
     color: definition.foregroundColor,
-    borderRadius: '2px'
+    borderRadius: '2px',
+    overviewRulerColor: definition.backgroundColor,
+    overviewRulerLane: isActiveHighlight ? vscode.OverviewRulerLane.Full : vscode.OverviewRulerLane.Right
   };
 }
 

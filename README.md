@@ -49,6 +49,7 @@ Loads a previously saved highlight list.
 
 - Supports word, plain text, and regular expression highlights.
 - Supports saving and restoring highlight sets.
+- Shows highlight markers in the editor overview ruler.
 
 ## 🗂️ Panel
 
@@ -151,4 +152,3 @@ npm run package
 ## License
 
 MIT License
-

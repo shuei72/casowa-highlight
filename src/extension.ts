@@ -13,6 +13,7 @@ import {
   findHighlightRanges,
   getHighlightEntries,
   getHighlightEntryAtPosition,
+  getHighlightEntryAtSelection,
   getHighlightEntryKey,
   getHighlightEntryDescription,
   getPatternDefinition,
@@ -371,9 +372,26 @@ export function activate(context: vscode.ExtensionContext): void {
       updateHighlightStatusBar();
     }),
     vscode.window.onDidChangeTextEditorSelection((event) => {
-      if (event.textEditor === vscode.window.activeTextEditor) {
-        updateHighlightStatusBar();
+      if (event.textEditor !== vscode.window.activeTextEditor) {
+        return;
       }
+
+      if (event.kind === vscode.TextEditorSelectionChangeKind.Mouse) {
+        const selectedEntry = getHighlightEntryAtSelection(event.textEditor.document, event.selections[0] ?? event.textEditor.selection);
+        const currentEntry = getSelectedHighlight();
+        const selectedEntryKey = selectedEntry ? getHighlightEntryKey(selectedEntry) : undefined;
+        const currentEntryKey = currentEntry ? getHighlightEntryKey(currentEntry) : undefined;
+
+        if (selectedEntry && selectedEntryKey !== currentEntryKey) {
+          selectHighlight(selectedEntry);
+          renderHighlightsForDocument(event.textEditor.document);
+          highlightPanelProvider.refresh();
+        } else if (selectedEntry) {
+          selectHighlight(selectedEntry);
+        }
+      }
+
+      updateHighlightStatusBar();
     }),
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (!event.affectsConfiguration('kasowaHighlight')) {
